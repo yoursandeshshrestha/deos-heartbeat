@@ -4,7 +4,7 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 
 **Product:** Report distribution management + fleet health monitoring for one primary user (Viv Barrett).
 
-**Stack (decided):** Vite + React + TypeScript SPA (keep this repo; not Next.js). Hosted on Vercel (`lhr1`). shadcn/ui + Tailwind. SWR (60s poll). Supabase Postgres + Auth (`eu-west-2`). Drizzle. Sentry + uptime check.
+**Stack (decided):** Vite + React + TypeScript SPA (keep this repo; not Next.js). Hosted on Vercel (`lhr1`). shadcn/ui + Tailwind. SWR (60s poll). Supabase Postgres + Auth (`eu-west-2`) with SQL migrations + supabase-js. Sentry + uptime check.
 
 **API note:** Scope’s `/api/*` routes become Vercel serverless functions (or Supabase Edge Functions) beside the SPA so `GRAFANA_TOKEN` and `REPORT_CONFIG_KEY` never reach the browser. Same contracts: `/api/fleet`, `/api/report-config`, `/api/report-runs`, `/api/health`, `/api/config`.
 
@@ -43,7 +43,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [ ] Supabase Pro in `eu-west-2` — **blocked:** linked `ukdeos` (`oowdlikrwfoyltrpmvjj`) is **Northeast Asia (Tokyo)**, not London. WALG on, PITR off, no backup timestamps yet (new project). Needs new project in `eu-west-2` (ideally Thrumble org) before go-live.
 - [x] Env pattern: `.env.example` + server-only secrets (`GRAFANA_TOKEN`, `REPORT_CONFIG_KEY`, service role); Preview vs Production set in Vercel dashboard
 - [ ] Local seed fixtures from real Grafana CSV exports
-- [ ] Confirm Grafana edition/version (`https://mis.ukdeos.com/mon`)
+- [x] Confirm Grafana edition/version (`https://mis.ukdeos.com/mon`) — **Open Source 13.2.2**
 - [ ] Confirm Prometheus labels and value semantics (see open questions)
 - [ ] Build instance ↔ van mapping; `vans.modality_target` for modality probe
 - [ ] Audit current daily/weekly report workflow (tool assumed n8n; where lists live)
@@ -53,7 +53,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 
 | # | Question | Who |
 | --- | --- | --- |
-| 1 | Grafana edition; can UKDEOS create a Viewer service account? | Jo → Viv |
+| 1 | Grafana edition; can UKDEOS create a Viewer service account? | Jo → Viv — **edition confirmed Open Source 13.2.2** via token; still rotate to dedicated Viewer SA before go-live |
 | 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna |
 | 3 | How `probe_success{job="modality"}` instances map to van instances | Guna |
 | 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
@@ -162,7 +162,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Manual QA checklist vs every client scope bullet (see below)
 - [x] Deploy to Vercel (`thrumble2/deos-heartbeat` + GitHub connected for preview deploys) — live Grafana still pending token
 - [x] `/api/health` — DB probe + Grafana reachability/token check when configured
-- [x] Uptime check every 5 minutes → `/api/uptime` cron; set `UPTIME_WEBHOOK_URL` (+ optional `CRON_SECRET`) to alert Thrumble
+- [x] Uptime check every 5 minutes → `/api/uptime` ready; **5‑min Vercel Cron needs Pro** (Hobby blocks it). Set `UPTIME_WEBHOOK_URL` when Pro is enabled, or use an external uptime ping.
 - [ ] Viv UAT with test script
 
 ### Manual QA checklist
@@ -242,7 +242,8 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 0 | Portal UI stripped. Shell: login + Fleet / Reports / Audit placeholders. Roles simplified to admin \| viewer. |
 | 25 Sep 2026 | 0 | Vercel + API scaffold: `vercel.json` (lhr1, SPA fallback, CSP/HSTS), stubs for fleet/report-config/report-runs/health/config, `.env.example`. Project link blocked until `vercel login`. |
 | 25 Sep 2026 | 0 | Supabase check: `ukdeos` is Tokyo (not eu-west-2). WALG true / PITR false / no backup window yet. Region fix required before production. Starting Phase 1 schema on current project for local progress. |
-| 25 Sep 2026 | 1 | Core schema migration applied (`trusts`, `vans`, `recipients`, `settings`, `profiles`, `report_runs`, `audit_log` + RLS + audit triggers). Drizzle mirror in `src/db/schema.ts`. Seed accounts ready. |
+| 25 Sep 2026 | 1 | Core schema migration applied (`trusts`, `vans`, `recipients`, `settings`, `profiles`, `report_runs`, `audit_log` + RLS + audit triggers). Seed accounts ready. |
+| 25 Sep 2026 | 0 | Removed Drizzle; schema stays on Supabase migrations + supabase-js. |
 | 25 Sep 2026 | 1 | Implemented `GET /api/report-config` + `POST /api/report-runs` (API key). Snapshot stored in settings. Demo trust fixture in seed. |
 | 25 Sep 2026 | 2 | Reports UI (trusts/vans/recipients, toggles, soft-delete/pause) + Audit log page. Admin write / viewer read via RLS. |
 | 25 Sep 2026 | 2 | 12h session timeout, TOTP MFA enroll/challenge gate (admin), rate limits on report APIs. Enable TOTP in hosted Supabase Auth. |
