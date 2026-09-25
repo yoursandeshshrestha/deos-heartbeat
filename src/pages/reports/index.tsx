@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { PageEmptyState } from '@/components/layout/PageEmptyState'
@@ -69,11 +69,20 @@ export function ReportsPage() {
   const [addTrustOpen, setAddTrustOpen] = useState(false)
   const [addVanOpen, setAddVanOpen] = useState(false)
   const [addRecipientOpen, setAddRecipientOpen] = useState(false)
+  const [assignVan, setAssignVan] = useState<Van | null>(null)
 
   const selected = useMemo(() => {
     if (!trusts.length) return null
     return trusts.find((trust) => trust.id === selectedId) ?? trusts[0]
   }, [trusts, selectedId])
+
+  const trustOptions = useMemo(
+    () =>
+      trusts
+        .filter((trust) => trust.active)
+        .map((trust) => ({ label: trust.name, value: trust.id })),
+    [trusts],
+  )
 
   if (loading) {
     return <PageLoading />
@@ -144,7 +153,7 @@ export function ReportsPage() {
           <section className="mt-10">
             <h2 className="text-sm font-medium">Unassigned vans</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Auto-discovered from Grafana (or seeded). Assign to a trust when ready.
+              Auto-discovered from Grafana. Assign to a trust to include in reports.
             </p>
             <div className="mt-4 overflow-x-auto">
               <Table>
@@ -153,6 +162,9 @@ export function ReportsPage() {
                     <TableHead className={dataTableHeadClass}>Instance</TableHead>
                     <TableHead className={dataTableHeadClass}>Display name</TableHead>
                     <TableHead className={dataTableHeadClass}>Status</TableHead>
+                    {canWrite ? (
+                      <TableHead className={dataTableHeadClass} />
+                    ) : null}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -165,6 +177,36 @@ export function ReportsPage() {
                       <TableCell className={dataTableCellClass}>
                         {statusBadge(van.status)}
                       </TableCell>
+                      {canWrite ? (
+                        <TableCell className={dataTableCellClass}>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setAssignVan(van)}
+                            >
+                              Assign
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => {
+                                void runMutation(
+                                  'Van dismissed',
+                                  () =>
+                                    supabase
+                                      .from('vans')
+                                      .update({ status: 'removed' })
+                                      .eq('id', van.id),
+                                  reload,
+                                )
+                              }}
+                            >
+                              Dismiss
+                            </Button>
+                          </div>
+                        </TableCell>
+                      ) : null}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -180,6 +222,20 @@ export function ReportsPage() {
         onCreated={async (id) => {
           await reload()
           setSelectedId(id)
+        }}
+      />
+      <AssignVanDialog
+        van={assignVan}
+        trustOptions={trustOptions}
+        trusts={trusts}
+        open={assignVan != null}
+        onOpenChange={(open) => {
+          if (!open) setAssignVan(null)
+        }}
+        onAssigned={async (trustId) => {
+          await reload()
+          setSelectedId(trustId)
+          setAssignVan(null)
         }}
       />
       {selected ? (
@@ -553,6 +609,119 @@ function ToggleRow({
       />
       <span>{label}</span>
     </label>
+  )
+}
+
+function AssignVanDialog({
+  van,
+  trustOptions,
+  trusts,
+  open,
+  onOpenChange,
+  onAssigned,
+}: {
+  van: Van | null
+  trustOptions: { label: string; value: string }[]
+  trusts: TrustWithRelations[]
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onAssigned: (trustId: string) => Promise<void>
+}) {
+  const suggestedTrustId = useMemo(() => {
+    if (!van) return ''
+    if (van.trust_id) return van.trust_id
+    const slug = van.instance.split('.')[0] ?? ''
+    return trusts.find((trust) => trust.slug === slug)?.id ?? ''
+  }, [van, trusts])
+
+  const [trustId, setTrustId] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (open) setTrustId(suggestedTrustId)
+  }, [open, suggestedTrustId])
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    if (!van || !trustId) {
+      toast.error('Pick a trust')
+      return
+    }
+    setSubmitting(true)
+    const { error } = await supabase
+      .from('vans')
+      .update({
+        trust_id: trustId,
+        status: 'active',
+        daily_enabled: true,
+        weekly_enabled: true,
+        display_name:
+          van.display_name === van.instance
+            ? van.instance.split('.').slice(1).join('.').replace(/_/g, ' ') ||
+              van.display_name
+            : van.display_name,
+        modality_target: van.modality_target ?? van.instance,
+      })
+      .eq('id', van.id)
+    setSubmitting(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Van assigned')
+    onOpenChange(false)
+    await onAssigned(trustId)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form onSubmit={onSubmit}>
+          <DialogHeader>
+            <DialogTitle>Assign van</DialogTitle>
+            <DialogDescription>
+              {van
+                ? `Link ${van.instance} to a trust and mark it active for reports.`
+                : 'Link a discovered van to a trust.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 space-y-4">
+            <div className="space-y-2">
+              <Label>Trust</Label>
+              <Combobox
+                data={trustOptions}
+                type="trust"
+                value={trustId}
+                onValueChange={setTrustId}
+              >
+                <ComboboxTrigger className="w-full" />
+                <ComboboxContent>
+                  <ComboboxInput />
+                  <ComboboxList>
+                    <ComboboxEmpty>No trust found</ComboboxEmpty>
+                    <ComboboxGroup>
+                      {trustOptions.map((option) => (
+                        <ComboboxItem key={option.value} value={option.value}>
+                          {option.label}
+                        </ComboboxItem>
+                      ))}
+                    </ComboboxGroup>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </div>
+          </div>
+          <DialogFooter className="mt-6">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={submitting} data-dialog-primary-action>
+              Assign
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
 

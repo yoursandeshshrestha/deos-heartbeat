@@ -91,20 +91,55 @@ async function ensureTrustId(slug: string): Promise<string | null> {
 
 async function autoDiscover(instances: string[], existing: DbVanRow[]) {
   if (!supabaseEnv.url() || !supabaseEnv.serviceRoleKey()) return
+  const db = getServiceClient()
+
+  const excludedIds = existing
+    .filter((van) => isExcludedInstance(van.instance) && van.status !== 'removed')
+    .map((van) => van.id)
+  if (excludedIds.length) {
+    await db.from('vans').update({ status: 'removed' }).in('id', excludedIds)
+  }
+
+  const needsBackfill = existing.filter(
+    (van) =>
+      van.status === 'unassigned' &&
+      !isExcludedInstance(van.instance) &&
+      (!van.trust_id ||
+        van.display_name === van.instance ||
+        !van.modality_target),
+  )
+
+  const trustIds = new Map<string, string | null>()
+  async function trustFor(instance: string) {
+    const slug = trustSlugFromInstance(instance)
+    if (!trustIds.has(slug)) {
+      trustIds.set(slug, await ensureTrustId(slug))
+    }
+    return trustIds.get(slug) ?? null
+  }
+
+  for (const van of needsBackfill) {
+    await db
+      .from('vans')
+      .update({
+        trust_id: van.trust_id ?? (await trustFor(van.instance)),
+        display_name:
+          van.display_name === van.instance
+            ? displayNameFromInstance(van.instance)
+            : van.display_name,
+        modality_target: van.modality_target ?? van.instance,
+      })
+      .eq('id', van.id)
+  }
+
   const known = new Set(existing.map((van) => van.instance))
   const missing = instances.filter(
     (instance) => !known.has(instance) && !isExcludedInstance(instance),
   )
   if (!missing.length) return
 
-  const db = getServiceClient()
-  const trustIds = new Map<string, string | null>()
-
   for (const instance of missing) {
-    const slug = trustSlugFromInstance(instance)
-    if (!trustIds.has(slug)) {
-      trustIds.set(slug, await ensureTrustId(slug))
-    }
+    await trustFor(instance)
   }
 
   await db.from('vans').upsert(
@@ -113,7 +148,6 @@ async function autoDiscover(instances: string[], existing: DbVanRow[]) {
       return {
         instance,
         display_name: displayNameFromInstance(instance),
-        // Live Grafana modality series use the same instance label today.
         modality_target: instance,
         trust_id: trustIds.get(slug) ?? null,
         status: 'unassigned' as const,
