@@ -365,13 +365,6 @@ export function FleetPage() {
           </div>
         </section>
 
-        <p className="text-xs text-muted-foreground">
-          Offline: modality/sync/scrape down. Not scheduled: online but no worklist or
-          patients today. Degraded: sync queues, slow transfer, or low midday progress.
-          Healthy: passing checks. Open a van for the exact reason. Totals follow the
-          trust filter above.
-        </p>
-
         {!visibleTrusts.length ? (
           <PageEmptyState
             title="No vans in view"
