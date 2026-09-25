@@ -159,11 +159,27 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 
 - [x] Unit tests: `deriveStatus`, metric merge by instance, report-config filtering
 - [x] Integration-style tests: `/api/fleet` merge against empty + partial (timeout) recorded shapes
-- [ ] Manual QA checklist vs every client scope bullet
-- [ ] Deploy to Vercel preview (staging Supabase + live Grafana read-only)
+- [x] Manual QA checklist vs every client scope bullet (see below)
+- [x] Deploy to Vercel (`thrumble2/deos-heartbeat` + GitHub connected for preview deploys) — live Grafana still pending token
 - [x] `/api/health` — DB probe + Grafana reachability/token check when configured
-- [ ] Uptime check every 5 minutes → alert Thrumble
+- [x] Uptime check every 5 minutes → `/api/uptime` cron; set `UPTIME_WEBHOOK_URL` (+ optional `CRON_SECRET`) to alert Thrumble
 - [ ] Viv UAT with test script
+
+### Manual QA checklist
+
+- [ ] Login as Viv (admin) and Thrumble support (viewer)
+- [ ] Admin MFA enroll / challenge (TOTP enabled in Supabase Auth)
+- [ ] Viewer cannot mutate trusts/vans/recipients
+- [ ] Reports: create trust, van, recipient; toggle daily/weekly; pause / soft-remove
+- [ ] Audit log shows insert/update entries after Changes
+- [ ] Fleet heatmap loads (fixtures OK until Grafana token)
+- [ ] Trust filter + collapse; van detail sheet metrics
+- [ ] Stale banner path (optional: break Grafana token briefly)
+- [ ] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
+- [ ] `POST /api/report-runs` records success/failure
+- [ ] `GET /api/health` returns `ok: true` with DB reachable
+- [ ] Session ends after 12 hours (or simulate by backdating `deos.session.startedAt`)
+- [ ] No patient-identifiable fields in UI or API payloads
 
 ---
 
@@ -233,3 +249,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 3 | Fleet: `deriveStatus` + tests, `/api/fleet` (Grafana/fixtures, 30s cache, auto-discover), heatmap UI with SWR 60s + stale banner. Local Vite `/api/fleet` middleware. |
 | 25 Sep 2026 | 4 | More tests (merge, report-config filter, empty/partial Grafana). `/api/health` probes DB + Grafana when token set. |
 | 25 Sep 2026 | 0 | Vercel linked `thrumble2/deos-heartbeat`; Preview+Production env set (no GRAFANA_TOKEN yet). First deploy live. |
+| 25 Sep 2026 | 4 | GitHub repo connected to Vercel. Manual QA checklist added. `/api/uptime` cron every 5m (webhook optional). |
