@@ -204,62 +204,158 @@ export function FleetPage() {
           </div>
         ) : null}
 
-        <section
-          aria-label="Fleet status"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8"
-        >
-          <SummaryStat
-            label="Vans"
-            value={summary.vans}
-            hint={`${trustCount} trust${trustCount === 1 ? '' : 's'}`}
-          />
-          <SummaryStat
-            label="Online"
-            value={summary.online}
-            hint={`${summary.modalityUp} modality up`}
-          />
-          <SummaryStat label="Patients today" value={summary.patients} />
-          <SummaryStat label="Studies today" value={summary.studies} />
-          <SummaryStat label="Worklist" value={summary.worklist} />
-          <SummaryStat
-            label="Day progress"
-            value={
-              summary.progressPct == null ? '—' : `${Math.round(summary.progressPct)}%`
-            }
-            hint="patients / worklist"
-          />
-          <SummaryStat
-            label="Sync queue"
-            value={summary.failed + summary.retry}
-            hint={`${summary.failed} failed · ${summary.retry} retry · ${summary.active} active`}
-          />
-          <SummaryStat
-            label="Avg sync speed"
-            value={
-              summary.avgSpeed == null ? '—' : `${summary.avgSpeed.toFixed(2)}`
-            }
-            hint="MB/s"
-          />
+        <section aria-label="Fleet status" className="grid gap-4 lg:grid-cols-12">
+          <div className="surface-card flex flex-col gap-5 p-5 lg:col-span-5">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                  Fleet health
+                </p>
+                <p className="mt-2 text-3xl font-medium tracking-tight tabular-nums">
+                  {summary.online}
+                  <span className="text-lg font-normal text-muted-foreground">
+                    /{summary.vans}
+                  </span>
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  online · {trustCount} trust{trustCount === 1 ? '' : 's'} ·{' '}
+                  {summary.modalityUp} modality up
+                </p>
+              </div>
+              <div className="rounded-full bg-muted/60 px-3 py-1 text-xs tabular-nums text-muted-foreground">
+                {summary.vans
+                  ? Math.round((summary.online / summary.vans) * 100)
+                  : 0}
+                % up
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
+                {(
+                  [
+                    ['green', counts.green, 'bg-emerald-500'],
+                    ['amber', counts.amber, 'bg-orange-500'],
+                    ['grey', counts.grey, 'bg-zinc-400 dark:bg-zinc-500'],
+                    ['red', counts.red, 'bg-red-500'],
+                  ] as const
+                ).map(([key, value, color]) =>
+                  value > 0 && summary.vans > 0 ? (
+                    <div
+                      key={key}
+                      className={cn('h-full transition-[width]', color)}
+                      style={{ width: `${(value / summary.vans) * 100}%` }}
+                      title={`${key}: ${value}`}
+                    />
+                  ) : null,
+                )}
+              </div>
+              <div className="grid grid-cols-4 gap-2 text-xs">
+                {(
+                  [
+                    ['Green', counts.green, 'text-emerald-700 dark:text-emerald-300'],
+                    ['Amber', counts.amber, 'text-orange-700 dark:text-orange-300'],
+                    ['Grey', counts.grey, 'text-zinc-600 dark:text-zinc-300'],
+                    ['Red', counts.red, 'text-red-700 dark:text-red-300'],
+                  ] as const
+                ).map(([label, value, color]) => (
+                  <div key={label} className={cn('min-w-0', color)}>
+                    <div className="truncate opacity-80">{label}</div>
+                    <div className="text-sm font-medium tabular-nums text-foreground">
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="surface-card flex flex-col gap-4 p-5 lg:col-span-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Today&apos;s volume
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Counts across the filtered fleet
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <MetricTile label="Patients" value={summary.patients} />
+              <MetricTile label="Studies" value={summary.studies} />
+              <MetricTile label="Worklist" value={summary.worklist} />
+            </div>
+            <div className="mt-auto space-y-2">
+              <div className="flex items-baseline justify-between gap-2 text-sm">
+                <span className="text-muted-foreground">Day progress</span>
+                <span className="font-medium tabular-nums">
+                  {summary.progressPct == null
+                    ? '—'
+                    : `${Math.round(summary.progressPct)}%`}
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-foreground/80 transition-[width]"
+                  style={{
+                    width: `${Math.min(100, Math.max(0, summary.progressPct ?? 0))}%`,
+                  }}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">patients ÷ worklist</p>
+            </div>
+          </div>
+
+          <div className="surface-card flex flex-col gap-4 p-5 lg:col-span-3">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                Sync
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Transfer health</p>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <div className="text-xs text-muted-foreground">Queue pressure</div>
+                  <div
+                    className={cn(
+                      'mt-1 text-3xl font-medium tabular-nums tracking-tight',
+                      summary.failed + summary.retry > 0 &&
+                        'text-orange-700 dark:text-orange-300',
+                    )}
+                  >
+                    {summary.failed + summary.retry}
+                  </div>
+                </div>
+                <div className="text-right text-xs text-muted-foreground">
+                  <div>
+                    <span className="tabular-nums text-foreground">{summary.failed}</span>{' '}
+                    failed
+                  </div>
+                  <div>
+                    <span className="tabular-nums text-foreground">{summary.retry}</span>{' '}
+                    retry
+                  </div>
+                  <div>
+                    <span className="tabular-nums text-foreground">{summary.active}</span>{' '}
+                    active
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border-subtle pt-3">
+                <div className="text-xs text-muted-foreground">Avg sync speed</div>
+                <div className="mt-1 flex items-baseline gap-1.5">
+                  <span className="text-2xl font-medium tabular-nums tracking-tight">
+                    {summary.avgSpeed == null ? '—' : summary.avgSpeed.toFixed(2)}
+                  </span>
+                  {summary.avgSpeed != null ? (
+                    <span className="text-xs text-muted-foreground">MB/s</span>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
 
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Stat label="Red · offline" value={counts.red} className="text-red-700 dark:text-red-300" />
-          <Stat
-            label="Amber · degraded"
-            value={counts.amber}
-            className="text-orange-700 dark:text-orange-300"
-          />
-          <Stat
-            label="Grey · not scheduled"
-            value={counts.grey}
-            className="text-zinc-600 dark:text-zinc-300"
-          />
-          <Stat
-            label="Green · healthy"
-            value={counts.green}
-            className="text-emerald-700 dark:text-emerald-300"
-          />
-        </div>
         <p className="text-xs text-muted-foreground">
           Red: modality/sync/scrape down. Grey: online but no worklist or patients today.
           Amber: sync queues, slow transfer, or low midday progress. Green: passing checks.
@@ -388,37 +484,11 @@ export function FleetPage() {
   )
 }
 
-function SummaryStat({
-  label,
-  value,
-  hint,
-}: {
-  label: string
-  value: number | string
-  hint?: string
-}) {
+function MetricTile({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border-b border-border-subtle pb-3 sm:border-b-0 sm:border-l sm:pb-0 sm:pl-3 first:sm:border-l-0 first:sm:pl-0">
+    <div className="rounded-xl bg-muted/50 px-3 py-3">
       <div className="text-xs text-muted-foreground">{label}</div>
-      <div className="mt-1 text-2xl font-medium tabular-nums tracking-tight">{value}</div>
-      {hint ? <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div> : null}
-    </div>
-  )
-}
-
-function Stat({
-  label,
-  value,
-  className,
-}: {
-  label: string
-  value: number
-  className?: string
-}) {
-  return (
-    <div className={cn('rounded-md border border-border-subtle px-3 py-2', className)}>
-      <div className="text-xs uppercase tracking-wide opacity-70">{label}</div>
-      <div className="text-lg font-medium tabular-nums">{value}</div>
+      <div className="mt-1 text-xl font-medium tabular-nums tracking-tight">{value}</div>
     </div>
   )
 }
