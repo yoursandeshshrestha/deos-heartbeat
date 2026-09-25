@@ -62,6 +62,44 @@ function countStatuses(vans: FleetVan[]) {
   )
 }
 
+function sumMetric(vans: FleetVan[], key: keyof FleetVan) {
+  return vans.reduce((total, van) => {
+    const value = van[key]
+    return typeof value === 'number' && Number.isFinite(value) ? total + value : total
+  }, 0)
+}
+
+function fleetSummary(vans: FleetVan[]) {
+  const patients = sumMetric(vans, 'patients_today')
+  const studies = sumMetric(vans, 'studies_today')
+  const worklist = sumMetric(vans, 'worklist_today')
+  const failed = sumMetric(vans, 'sync_failed')
+  const retry = sumMetric(vans, 'sync_retry')
+  const active = sumMetric(vans, 'sync_active')
+  const speeds = vans
+    .map((van) => van.sync_speed)
+    .filter((value): value is number => typeof value === 'number' && Number.isFinite(value))
+  const avgSpeed =
+    speeds.length > 0 ? speeds.reduce((a, b) => a + b, 0) / speeds.length : null
+  const modalityUp = vans.filter((van) => van.modality_up === 1).length
+  const online = vans.filter((van) => van.status !== 'red').length
+  const progressPct = worklist > 0 ? (patients / worklist) * 100 : null
+
+  return {
+    vans: vans.length,
+    patients,
+    studies,
+    worklist,
+    failed,
+    retry,
+    active,
+    avgSpeed,
+    modalityUp,
+    online,
+    progressPct,
+  }
+}
+
 export function FleetPage() {
   const { role } = useAuth()
   const canWrite = role === 'admin'
@@ -95,6 +133,8 @@ export function FleetPage() {
     [visibleTrusts],
   )
   const counts = countStatuses(visibleVans)
+  const summary = useMemo(() => fleetSummary(visibleVans), [visibleVans])
+  const trustCount = visibleTrusts.length
 
   if (isLoading && !data) {
     return <PageLoading />
@@ -164,6 +204,44 @@ export function FleetPage() {
           </div>
         ) : null}
 
+        <section
+          aria-label="Fleet status"
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8"
+        >
+          <SummaryStat
+            label="Vans"
+            value={summary.vans}
+            hint={`${trustCount} trust${trustCount === 1 ? '' : 's'}`}
+          />
+          <SummaryStat
+            label="Online"
+            value={summary.online}
+            hint={`${summary.modalityUp} modality up`}
+          />
+          <SummaryStat label="Patients today" value={summary.patients} />
+          <SummaryStat label="Studies today" value={summary.studies} />
+          <SummaryStat label="Worklist" value={summary.worklist} />
+          <SummaryStat
+            label="Day progress"
+            value={
+              summary.progressPct == null ? '—' : `${Math.round(summary.progressPct)}%`
+            }
+            hint="patients / worklist"
+          />
+          <SummaryStat
+            label="Sync queue"
+            value={summary.failed + summary.retry}
+            hint={`${summary.failed} failed · ${summary.retry} retry · ${summary.active} active`}
+          />
+          <SummaryStat
+            label="Avg sync speed"
+            value={
+              summary.avgSpeed == null ? '—' : `${summary.avgSpeed.toFixed(2)}`
+            }
+            hint="MB/s"
+          />
+        </section>
+
         <div className="flex flex-wrap gap-3 text-sm">
           <Stat label="Red · offline" value={counts.red} className="text-red-700 dark:text-red-300" />
           <Stat
@@ -185,7 +263,7 @@ export function FleetPage() {
         <p className="text-xs text-muted-foreground">
           Red: modality/sync/scrape down. Grey: online but no worklist or patients today.
           Amber: sync queues, slow transfer, or low midday progress. Green: passing checks.
-          Open a van for the exact reason.
+          Open a van for the exact reason. Totals follow the trust filter above.
         </p>
 
         {!visibleTrusts.length ? (
@@ -306,6 +384,24 @@ export function FleetPage() {
           onSaved={() => void mutate()}
         />
       ) : null}
+    </div>
+  )
+}
+
+function SummaryStat({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: number | string
+  hint?: string
+}) {
+  return (
+    <div className="border-b border-border-subtle pb-3 sm:border-b-0 sm:border-l sm:pb-0 sm:pl-3 first:sm:border-l-0 first:sm:pl-0">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="mt-1 text-2xl font-medium tabular-nums tracking-tight">{value}</div>
+      {hint ? <div className="mt-0.5 text-xs text-muted-foreground">{hint}</div> : null}
     </div>
   )
 }
