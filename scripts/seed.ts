@@ -67,73 +67,9 @@ async function upsertProfile(userId: string, account: (typeof ACCOUNTS)[number])
   }
 }
 
-async function ensureDemoTrust() {
-  const { data: existing, error: existingError } = await admin
-    .from('trusts')
-    .select('id')
-    .eq('slug', 'demo')
-    .maybeSingle()
-  if (existingError) throw existingError
-  if (existing) {
-    console.log('demo trust already present')
-    return existing.id as string
-  }
-
-  const { data: trust, error: trustError } = await admin
-    .from('trusts')
-    .insert({
-      name: 'Demo Trust',
-      slug: 'demo',
-      daily_enabled: true,
-      weekly_enabled: true,
-      active: true,
-    })
-    .select('id')
-    .single()
-  if (trustError) throw trustError
-
-  const { error: vanError } = await admin.from('vans').insert([
-    {
-      trust_id: trust.id,
-      instance: 'demo.van1-example',
-      display_name: 'Demo Van 1',
-      modality_target: 'demo.van1-example:104',
-      daily_enabled: true,
-      weekly_enabled: true,
-      status: 'active',
-    },
-    {
-      trust_id: trust.id,
-      instance: 'demo.van2-paused',
-      display_name: 'Demo Van 2 (paused)',
-      daily_enabled: false,
-      weekly_enabled: false,
-      status: 'paused',
-    },
-  ])
-  if (vanError) throw vanError
-
-  const { error: recipientError } = await admin.from('recipients').insert({
-    trust_id: trust.id,
-    name: 'Demo Recipient',
-    email: 'reports@ukdeos.com',
-    active: true,
-  })
-  if (recipientError) throw recipientError
-
-  console.log(`created demo trust ${trust.id}`)
-  return trust.id as string
-}
-
 async function main() {
   for (const account of ACCOUNTS) {
     await ensureUser(account)
-  }
-  // Dummy trust/vans for local UI only — set SEED_DEMO=1 to create.
-  if (process.env.SEED_DEMO === '1') {
-    await ensureDemoTrust()
-  } else {
-    console.log('skipping demo trust (set SEED_DEMO=1 to create)')
   }
   console.log('seed done')
 }

@@ -39,16 +39,16 @@ async function main() {
   console.log('report-config trusts:', filtered.length)
   console.log(JSON.stringify(filtered, null, 2))
 
-  const demo = filtered.find((t) => t.slug === 'demo')
-  if (!demo) {
-    console.log('no demo trust — run bun run seed first')
+  const target = filtered[0]
+  if (!target) {
+    console.log('no active trusts — assign vans in Reports or create a trust first')
     return
   }
 
   const { data: run, error: runError } = await db
     .from('report_runs')
     .insert({
-      trust_id: demo.id,
+      trust_id: target.id,
       report_type: 'daily',
       status: 'success',
       error: null,
@@ -57,7 +57,7 @@ async function main() {
     .single()
 
   if (runError) throw runError
-  console.log('report-run inserted:', run)
+  console.log(`report-run inserted for ${target.slug}:`, run)
 }
 
 main().catch((error) => {
