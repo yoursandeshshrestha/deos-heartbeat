@@ -52,6 +52,29 @@ const STATUS_STYLE: Record<FleetStatus, string> = {
   green: 'bg-emerald-600/90 text-white',
 }
 
+const STATUS_LABEL: Record<FleetStatus, string> = {
+  green: 'Healthy',
+  amber: 'Degraded',
+  grey: 'Not scheduled',
+  red: 'Offline',
+}
+
+const STATUS_ORDER: FleetStatus[] = ['green', 'amber', 'grey', 'red']
+
+const STATUS_BAR_COLOR: Record<FleetStatus, string> = {
+  green: 'bg-emerald-500',
+  amber: 'bg-orange-500',
+  grey: 'bg-zinc-400 dark:bg-zinc-500',
+  red: 'bg-red-500',
+}
+
+const STATUS_TEXT_COLOR: Record<FleetStatus, string> = {
+  green: 'text-emerald-700 dark:text-emerald-300',
+  amber: 'text-orange-700 dark:text-orange-300',
+  grey: 'text-zinc-600 dark:text-zinc-300',
+  red: 'text-red-700 dark:text-red-300',
+}
+
 function countStatuses(vans: FleetVan[]) {
   return vans.reduce(
     (acc, van) => {
@@ -232,37 +255,23 @@ export function FleetPage() {
 
             <div className="space-y-2">
               <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
-                {(
-                  [
-                    ['green', counts.green, 'bg-emerald-500'],
-                    ['amber', counts.amber, 'bg-orange-500'],
-                    ['grey', counts.grey, 'bg-zinc-400 dark:bg-zinc-500'],
-                    ['red', counts.red, 'bg-red-500'],
-                  ] as const
-                ).map(([key, value, color]) =>
-                  value > 0 && summary.vans > 0 ? (
+                {STATUS_ORDER.map((status) =>
+                  counts[status] > 0 && summary.vans > 0 ? (
                     <div
-                      key={key}
-                      className={cn('h-full transition-[width]', color)}
-                      style={{ width: `${(value / summary.vans) * 100}%` }}
-                      title={`${key}: ${value}`}
+                      key={status}
+                      className={cn('h-full transition-[width]', STATUS_BAR_COLOR[status])}
+                      style={{ width: `${(counts[status] / summary.vans) * 100}%` }}
+                      title={`${STATUS_LABEL[status]}: ${counts[status]}`}
                     />
                   ) : null,
                 )}
               </div>
-              <div className="grid grid-cols-4 gap-2 text-xs">
-                {(
-                  [
-                    ['Green', counts.green, 'text-emerald-700 dark:text-emerald-300'],
-                    ['Amber', counts.amber, 'text-orange-700 dark:text-orange-300'],
-                    ['Grey', counts.grey, 'text-zinc-600 dark:text-zinc-300'],
-                    ['Red', counts.red, 'text-red-700 dark:text-red-300'],
-                  ] as const
-                ).map(([label, value, color]) => (
-                  <div key={label} className={cn('min-w-0', color)}>
-                    <div className="truncate opacity-80">{label}</div>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs sm:grid-cols-4">
+                {STATUS_ORDER.map((status) => (
+                  <div key={status} className={cn('min-w-0', STATUS_TEXT_COLOR[status])}>
+                    <div className="truncate opacity-80">{STATUS_LABEL[status]}</div>
                     <div className="text-sm font-medium tabular-nums text-foreground">
-                      {value}
+                      {counts[status]}
                     </div>
                   </div>
                 ))}
@@ -357,9 +366,10 @@ export function FleetPage() {
         </section>
 
         <p className="text-xs text-muted-foreground">
-          Red: modality/sync/scrape down. Grey: online but no worklist or patients today.
-          Amber: sync queues, slow transfer, or low midday progress. Green: passing checks.
-          Open a van for the exact reason. Totals follow the trust filter above.
+          Offline: modality/sync/scrape down. Not scheduled: online but no worklist or
+          patients today. Degraded: sync queues, slow transfer, or low midday progress.
+          Healthy: passing checks. Open a van for the exact reason. Totals follow the
+          trust filter above.
         </p>
 
         {!visibleTrusts.length ? (
@@ -389,11 +399,11 @@ export function FleetPage() {
                         {group.vans.length} van{group.vans.length === 1 ? '' : 's'}
                       </p>
                     </div>
-                    <div className="flex gap-1">
-                      {(['red', 'amber', 'grey', 'green'] as FleetStatus[]).map((status) =>
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {STATUS_ORDER.map((status) =>
                         group.counts[status] ? (
                           <Badge key={status} variant="outline">
-                            {status} {group.counts[status]}
+                            {STATUS_LABEL[status]} {group.counts[status]}
                           </Badge>
                         ) : null,
                       )}
@@ -414,8 +424,8 @@ export function FleetPage() {
                           <span className="line-clamp-2 text-sm font-medium leading-tight">
                             {van.display_name}
                           </span>
-                          <span className="text-[11px] uppercase tracking-wide opacity-90">
-                            {van.status}
+                          <span className="text-[11px] font-medium tracking-wide opacity-90">
+                            {STATUS_LABEL[van.status]}
                           </span>
                         </button>
                       ))}
@@ -446,7 +456,7 @@ export function FleetPage() {
                       STATUS_STYLE[selected.status],
                     )}
                   >
-                    {selected.status}
+                    {STATUS_LABEL[selected.status]}
                   </span>
                   <span className="text-sm text-muted-foreground">{selected.reason}</span>
                 </div>
@@ -583,15 +593,15 @@ function ThresholdsDialog({
           <DialogHeader>
             <DialogTitle>Fleet thresholds</DialogTitle>
             <DialogDescription>
-              Amber / red rules for the heatmap. Confirm with Viv in UAT (Phase 0 Q6).
+              Amber / offline rules for the heatmap. Confirm with Viv in UAT (Phase 0 Q6).
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
             {field('speed_floor_mbps', 'Speed floor (MB/s)', '0.05')}
-            {field('failed_queue_amber', 'Failed queue amber at')}
-            {field('retry_queue_amber', 'Retry queue amber at')}
-            {field('progress_amber_pct', 'Midday progress amber %')}
-            {field('scrape_stale_minutes', 'Scrape stale (minutes)')}
+            {field('failed_queue_amber', 'Failed queue → degraded at')}
+            {field('retry_queue_amber', 'Retry queue → degraded at')}
+            {field('progress_amber_pct', 'Midday progress → degraded below %')}
+            {field('scrape_stale_minutes', 'Scrape stale → offline (minutes)')}
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
