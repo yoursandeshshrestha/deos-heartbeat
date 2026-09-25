@@ -18,8 +18,8 @@ describe('/api/fleet recorded responses', () => {
       vans: [
         {
           id: '1',
-          instance: 'demo.van1',
-          display_name: 'Demo',
+          instance: 'fixture.van1',
+          display_name: 'Fixture',
           trust_id: null,
           status: 'unassigned',
           speed_floor: null,
@@ -44,28 +44,28 @@ describe('/api/fleet recorded responses', () => {
       samples: {
         // modality missing = timed out
         patients_today: [
-          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '3'] },
+          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '3'] },
         ],
         worklist_today: [
-          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '5'] },
+          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '5'] },
         ],
         sync_dest_up: [
-          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '0'] },
+          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '0'] },
         ],
         scrape_up: [
-          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '1'] },
+          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '1'] },
         ],
       },
       vans: [
         {
           id: '1',
-          instance: 'demo.van1',
-          display_name: 'Demo',
+          instance: 'fixture.van1',
+          display_name: 'Fixture',
           trust_id: 't1',
           status: 'active',
           speed_floor: null,
           modality_target: null,
-          trusts: { id: 't1', name: 'Demo', slug: 'demo' },
+          trusts: { id: 't1', name: 'Fixture', slug: 'fixture' },
         },
       ],
       thresholds: DEFAULT_FLEET_THRESHOLDS,

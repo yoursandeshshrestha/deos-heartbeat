@@ -30,7 +30,7 @@ export function fixtureSamples(): Partial<Record<FleetMetricKey, PromSample[]>> 
   }
 
   return merge(
-    van('demo.van1-example', 'demo', {
+    van('fixture.van1-example', 'fixture', {
       modality_up: 1,
       sync_dest_up: 0,
       patients_today: 6,

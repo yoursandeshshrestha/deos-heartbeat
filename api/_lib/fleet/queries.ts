@@ -25,6 +25,8 @@ export type PromSample = {
 /** Non-screening instances: hubs, routers, xray-mob (scope open Q5). */
 export function isExcludedInstance(instance: string) {
   const lower = instance.toLowerCase()
+  // Seed / fixture leftovers — never treat as real fleet
+  if (lower.startsWith('demo.')) return true
   // hubs / secondary servers
   if (lower.includes('dserver') || lower.endsWith('.vserver')) return true
   // e.g. trust.van.router / trust.van.router2
