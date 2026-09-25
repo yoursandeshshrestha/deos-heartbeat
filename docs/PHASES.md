@@ -87,7 +87,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [ ] Migrate existing trusts, vans, recipients into Postgres
 - [x] `GET /api/report-config` — API key auth (`REPORT_CONFIG_KEY`); active trusts, vans + flags, recipients
 - [x] `POST /api/report-runs` — same API key; per-trust run result
-- [ ] Update reporting workflow to call config endpoint; run **in parallel** with old hard-coded config for one cycle
+- [ ] Update reporting workflow to call config endpoint; run **in parallel** with old hard-coded config for one cycle — eng notes: [`docs/n8n-report-config.md`](./n8n-report-config.md) (awaiting Guna/n8n access)
 - [x] Persist last successful config snapshot in `settings.report_config_last_ok` (workflow-side unreachable fallback + Thrumble alert still TBD)
 - [ ] Do **not** touch Wednesday Email Tracking Automation
 
@@ -146,6 +146,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Van detail panel
 - [x] SWR poll every 60s while tab visible (`refreshWhenHidden: false`)
 - [x] “Data delayed” banner when stale
+- [x] Status legend (Red offline / Amber degraded / Grey not scheduled / Green healthy)
 
 **Note:** Without `GRAFANA_TOKEN`, `/api/fleet` serves fixtures (and Vite dev middleware proxies `/api/fleet` locally).
 
@@ -173,7 +174,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [ ] Reports: create trust, van, recipient; toggle daily/weekly; pause / soft-remove
 - [ ] Audit log shows insert/update entries after Changes
 - [x] Fleet heatmap loads (live Grafana; routers/hubs filtered)
-- [ ] Trust filter + collapse; van detail sheet metrics
+- [x] Trust filter + collapse; van detail sheet metrics
 - [ ] Stale banner path (optional: break Grafana token briefly)
 - [x] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
 - [x] `POST /api/report-runs` records success/failure
@@ -255,3 +256,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 0/3 | Gauge semantics: `deos_*_status` treated as 0=OK (was inverted); multi-dest sync takes worst code. |
 | 25 Sep 2026 | 2 | Unassigned vans: Assign-to-trust + Dismiss; fleet poll soft-removes routers/hubs and backfills trust_id/display_name. |
 | 25 Sep 2026 | 4 | API QA: report-config + report-runs smoke OK; PII audit clean; Viv UAT script in `docs/UAT.md`. Fixed sync_speed PromQL (was NaN). |
+| 25 Sep 2026 | 3 | Fleet status legend on UI; n8n cutover notes in `docs/n8n-report-config.md`. Demo trust removed. |
