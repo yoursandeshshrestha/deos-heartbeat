@@ -57,7 +57,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna |
 | 3 | How `probe_success{job="modality"}` instances map to van instances | Guna |
 | 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
-| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv |
+| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** hubs (`.dserver`/`-dserver`/`.vserver`), `.router`/`.routerN`, and `xray-mob` excluded from fleet; ~50 instances remain as unassigned pending Viv’s active list |
 | 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) |
 | 7 | Preferred login; any read-only users at launch? | Jo + Viv |
 | 8 | Subdomain on `ukdeos.com` + who manages DNS | Jo + Viv |
@@ -160,7 +160,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Unit tests: `deriveStatus`, metric merge by instance, report-config filtering
 - [x] Integration-style tests: `/api/fleet` merge against empty + partial (timeout) recorded shapes
 - [x] Manual QA checklist vs every client scope bullet (see below)
-- [x] Deploy to Vercel (`thrumble2/deos-heartbeat` + GitHub connected for preview deploys) — live Grafana still pending token
+- [x] Deploy to Vercel (`thrumble2/deos-heartbeat` + GitHub connected for preview deploys) — live Grafana when `GRAFANA_TOKEN` set
 - [x] `/api/health` — DB probe + Grafana reachability/token check when configured
 - [x] Uptime check every 5 minutes → `/api/uptime` ready; **5‑min Vercel Cron needs Pro** (Hobby blocks it). Set `UPTIME_WEBHOOK_URL` when Pro is enabled, or use an external uptime ping.
 - [ ] Viv UAT with test script
@@ -172,12 +172,12 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [ ] Viewer cannot mutate trusts/vans/recipients
 - [ ] Reports: create trust, van, recipient; toggle daily/weekly; pause / soft-remove
 - [ ] Audit log shows insert/update entries after Changes
-- [ ] Fleet heatmap loads (fixtures OK until Grafana token)
+- [x] Fleet heatmap loads (live Grafana; routers/hubs filtered)
 - [ ] Trust filter + collapse; van detail sheet metrics
 - [ ] Stale banner path (optional: break Grafana token briefly)
 - [ ] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
 - [ ] `POST /api/report-runs` records success/failure
-- [ ] `GET /api/health` returns `ok: true` with DB reachable
+- [x] `GET /api/health` returns `ok: true` with DB reachable
 - [ ] Session ends after 12 hours (or simulate by backdating `deos.session.startedAt`)
 - [ ] No patient-identifiable fields in UI or API payloads
 
@@ -251,4 +251,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 4 | More tests (merge, report-config filter, empty/partial Grafana). `/api/health` probes DB + Grafana when token set. |
 | 25 Sep 2026 | 0 | Vercel linked `thrumble2/deos-heartbeat`; Preview+Production env set (no GRAFANA_TOKEN yet). First deploy live. |
 | 25 Sep 2026 | 4 | GitHub repo connected to Vercel. Manual QA checklist added. `/api/uptime` cron every 5m (webhook optional). |
-| 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~52 screening vans. |
+| 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~50 screening vans. Deployed to production. |
