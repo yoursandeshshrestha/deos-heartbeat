@@ -3,7 +3,11 @@ import { getServiceClient } from '../supabase.js'
 import { getFleetCache, isFleetCacheFresh, setFleetCache } from './cache.js'
 import { fixtureSamples } from './fixtures.js'
 import { mergeFleetMetrics, type DbVanRow } from './merge.js'
-import { isHubInstance } from './queries.js'
+import {
+  displayNameFromInstance,
+  isExcludedInstance,
+  trustSlugFromInstance,
+} from './queries.js'
 import { fetchAllFleetSamples } from './grafana.js'
 import {
   DEFAULT_FLEET_THRESHOLDS,
@@ -48,23 +52,75 @@ async function loadVans(): Promise<DbVanRow[]> {
   }
 }
 
+async function ensureTrustId(slug: string): Promise<string | null> {
+  const db = getServiceClient()
+  const { data: existing } = await db
+    .from('trusts')
+    .select('id')
+    .eq('slug', slug)
+    .maybeSingle()
+  if (existing?.id) return existing.id as string
+
+  const name = slug
+    .split('_')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+
+  const { data: created, error } = await db
+    .from('trusts')
+    .insert({
+      name,
+      slug,
+      active: true,
+      daily_enabled: true,
+      weekly_enabled: true,
+    })
+    .select('id')
+    .single()
+
+  if (error) {
+    const { data: again } = await db
+      .from('trusts')
+      .select('id')
+      .eq('slug', slug)
+      .maybeSingle()
+    return (again?.id as string) ?? null
+  }
+  return (created?.id as string) ?? null
+}
+
 async function autoDiscover(instances: string[], existing: DbVanRow[]) {
   if (!supabaseEnv.url() || !supabaseEnv.serviceRoleKey()) return
   const known = new Set(existing.map((van) => van.instance))
   const missing = instances.filter(
-    (instance) => !known.has(instance) && !isHubInstance(instance),
+    (instance) => !known.has(instance) && !isExcludedInstance(instance),
   )
   if (!missing.length) return
 
   const db = getServiceClient()
+  const trustIds = new Map<string, string | null>()
+
+  for (const instance of missing) {
+    const slug = trustSlugFromInstance(instance)
+    if (!trustIds.has(slug)) {
+      trustIds.set(slug, await ensureTrustId(slug))
+    }
+  }
+
   await db.from('vans').upsert(
-    missing.map((instance) => ({
-      instance,
-      display_name: instance,
-      status: 'unassigned' as const,
-      daily_enabled: false,
-      weekly_enabled: false,
-    })),
+    missing.map((instance) => {
+      const slug = trustSlugFromInstance(instance)
+      return {
+        instance,
+        display_name: displayNameFromInstance(instance),
+        // Live Grafana modality series use the same instance label today.
+        modality_target: instance,
+        trust_id: trustIds.get(slug) ?? null,
+        status: 'unassigned' as const,
+        daily_enabled: false,
+        weekly_enabled: false,
+      }
+    }),
     { onConflict: 'instance', ignoreDuplicates: true },
   )
 }
@@ -84,7 +140,9 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
     const samples = useFixtures ? fixtureSamples() : await fetchAllFleetSamples()
 
     const instances = new Set<string>()
-    for (const list of Object.values(samples) as Array<{ metric: { instance?: string } }[] | undefined>) {
+    for (const list of Object.values(samples) as Array<
+      { metric: { instance?: string } }[] | undefined
+    >) {
       for (const sample of list ?? []) {
         if (sample.metric.instance) instances.add(sample.metric.instance)
       }
@@ -112,7 +170,6 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
       }
     }
 
-    // Last resort: fixture so the UI can still render
     const payload = mergeFleetMetrics({
       samples: fixtureSamples(),
       vans,
@@ -121,7 +178,6 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
       stale: true,
       source: 'fixture',
     })
-    // Attach error reason on a synthetic green check — UI uses stale banner
     void error
     setFleetCache(payload)
     return payload

@@ -11,12 +11,13 @@ function sample(instance: string, trust: string, value: string): PromSample {
 }
 
 describe('mergeFleetMetrics', () => {
-  it('merges by instance and excludes .dserver hubs', () => {
+  it('merges by instance and excludes hubs/routers', () => {
     const payload = mergeFleetMetrics({
       samples: {
         modality_up: [
           sample('bradford.van1', 'bradford', '1'),
           sample('bradford.dserver', 'bradford', '1'),
+          sample('bradford.van1.router', 'bradford', '1'),
         ],
         patients_today: [sample('bradford.van1', 'bradford', '4')],
         worklist_today: [sample('bradford.van1', 'bradford', '8')],

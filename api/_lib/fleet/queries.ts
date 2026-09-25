@@ -23,8 +23,31 @@ export type PromSample = {
   value: [number, string]
 }
 
+/** Non-screening instances: hubs, routers, xray-mob (scope open Q5). */
+export function isExcludedInstance(instance: string) {
+  const lower = instance.toLowerCase()
+  // hubs / secondary servers
+  if (lower.includes('dserver') || lower.endsWith('.vserver')) return true
+  // e.g. trust.van.router / trust.van.router2
+  if (/(^|\.)router\d*$/.test(lower)) return true
+  if (lower.includes('xray-mob')) return true
+  return false
+}
+
+/** @deprecated use isExcludedInstance */
 export function isHubInstance(instance: string) {
-  return instance.endsWith('.dserver')
+  return isExcludedInstance(instance)
+}
+
+export function trustSlugFromInstance(instance: string) {
+  const prefix = instance.split('.')[0]
+  return prefix || 'unknown'
+}
+
+export function displayNameFromInstance(instance: string) {
+  const parts = instance.split('.')
+  if (parts.length < 2) return instance
+  return parts.slice(1).join('.').replace(/_/g, ' ')
 }
 
 export function parsePromValue(raw: string): number | null {

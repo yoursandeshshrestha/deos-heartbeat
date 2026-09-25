@@ -1,5 +1,10 @@
 import { deriveStatus } from './deriveStatus.js'
-import { isHubInstance, type FleetMetricKey, type PromSample, parsePromValue } from './queries.js'
+import {
+  isExcludedInstance,
+  type FleetMetricKey,
+  type PromSample,
+  parsePromValue,
+} from './queries.js'
 import type {
   FleetPayload,
   FleetThresholds,
@@ -80,7 +85,7 @@ export function mergeFleetMetrics(args: {
         instance = modalityTargetToInstance.get(instance) ?? instance
       }
 
-      if (isHubInstance(instance)) continue
+      if (isExcludedInstance(instance)) continue
 
       const existing = byInstance.get(instance) ?? emptyMetrics(instance, trustFromLabels(sample))
       if (!existing.trust) existing.trust = trustFromLabels(sample)
@@ -104,7 +109,7 @@ export function mergeFleetMetrics(args: {
 
   // Ensure DB vans appear even if Grafana returned nothing for them
   for (const van of args.vans) {
-    if (van.status === 'removed' || isHubInstance(van.instance)) continue
+    if (van.status === 'removed' || isExcludedInstance(van.instance)) continue
     if (!byInstance.has(van.instance)) {
       byInstance.set(
         van.instance,
