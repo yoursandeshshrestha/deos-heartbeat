@@ -21,7 +21,8 @@ describe('mergeFleetMetrics', () => {
         ],
         patients_today: [sample('bradford.van1', 'bradford', '4')],
         worklist_today: [sample('bradford.van1', 'bradford', '8')],
-        sync_dest_up: [sample('bradford.van1', 'bradford', '1')],
+        sync_dest_up: [sample('bradford.van1', 'bradford', '0')],
+        sync_speed: [sample('bradford.van1', 'bradford', '1500000')],
         scrape_up: [sample('bradford.van1', 'bradford', '1')],
       },
       vans: [
@@ -45,6 +46,7 @@ describe('mergeFleetMetrics', () => {
     expect(payload.vans.map((van) => van.instance)).toEqual(['bradford.van1'])
     expect(payload.vans[0].display_name).toBe('Bradford 1')
     expect(payload.vans[0].patients_today).toBe(4)
+    expect(payload.vans[0].sync_speed).toBe(1.5)
     expect(payload.trusts[0].trust).toBe('bradford')
   })
 
@@ -58,7 +60,7 @@ describe('mergeFleetMetrics', () => {
           },
         ],
         scrape_up: [sample('demo.van1', 'demo', '1')],
-        sync_dest_up: [sample('demo.van1', 'demo', '1')],
+        sync_dest_up: [sample('demo.van1', 'demo', '0')],
         patients_today: [sample('demo.van1', 'demo', '1')],
         worklist_today: [sample('demo.van1', 'demo', '2')],
       },

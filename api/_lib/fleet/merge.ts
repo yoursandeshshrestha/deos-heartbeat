@@ -107,6 +107,11 @@ export function mergeFleetMetrics(args: {
           existing.sync_dest_up =
             prev == null ? next : Math.abs(next) >= Math.abs(prev) ? next : prev
         }
+      } else if (key === 'sync_speed') {
+        // Prometheus exposes bytes/s; UI + thresholds use MB/s.
+        const bytesPerSec = parsePromValue(sample.value[1])
+        existing.sync_speed =
+          bytesPerSec == null ? null : bytesPerSec / 1_000_000
       } else {
         existing[key] = parsePromValue(sample.value[1]) as never
       }

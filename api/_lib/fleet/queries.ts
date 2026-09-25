@@ -4,8 +4,7 @@ export const FLEET_QUERIES = {
   patients_today: 'orthanc_number_of_patients_today',
   studies_today: 'orthanc_number_of_studies_today',
   worklist_today: 'deos_worklist_today_count',
-  sync_speed:
-    'rate(deos_sync_transfer_speed_sum[15m]) / rate(deos_sync_transfer_speed_count[15m])',
+  sync_speed: 'avg_over_time(deos_sync_transfer_speed[15m])',
   sync_failed: 'deos_sync_queue_failed_count',
   sync_active: 'deos_sync_queue_active_count',
   sync_complete: 'deos_sync_queue_complete_count',
