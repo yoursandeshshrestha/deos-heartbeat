@@ -472,7 +472,9 @@ function TrustDetail({
           ) : null}
         </div>
         {!recipients.length ? (
-          <p className="text-sm text-muted-foreground">No active recipients.</p>
+          <p className="text-sm text-muted-foreground">
+            No active recipients. Add emails so daily/weekly reports have somewhere to go.
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <Table>

@@ -52,6 +52,27 @@ async function loadVans(): Promise<DbVanRow[]> {
   }
 }
 
+const TRUST_DISPLAY_NAMES: Record<string, string> = {
+  nwa: 'NWA',
+  tic: 'TIC',
+  notts: 'Notts',
+  kings_lynn: 'Kings Lynn',
+  milton_keynes: 'Milton Keynes',
+  north_midlands: 'North Midlands',
+}
+
+function trustNameFromSlug(slug: string) {
+  if (TRUST_DISPLAY_NAMES[slug]) return TRUST_DISPLAY_NAMES[slug]
+  return slug
+    .split('_')
+    .map((part) =>
+      part.length <= 3
+        ? part.toUpperCase()
+        : part.charAt(0).toUpperCase() + part.slice(1),
+    )
+    .join(' ')
+}
+
 async function ensureTrustId(slug: string): Promise<string | null> {
   const db = getServiceClient()
   const { data: existing } = await db
@@ -61,15 +82,10 @@ async function ensureTrustId(slug: string): Promise<string | null> {
     .maybeSingle()
   if (existing?.id) return existing.id as string
 
-  const name = slug
-    .split('_')
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-
   const { data: created, error } = await db
     .from('trusts')
     .insert({
-      name,
+      name: trustNameFromSlug(slug),
       slug,
       active: true,
       daily_enabled: true,

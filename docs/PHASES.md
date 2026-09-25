@@ -8,7 +8,18 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 
 **API note:** Scope’s `/api/*` routes become Vercel serverless functions (or Supabase Edge Functions) beside the SPA so `GRAFANA_TOKEN` and `REPORT_CONFIG_KEY` never reach the browser. Same contracts: `/api/fleet`, `/api/report-config`, `/api/report-runs`, `/api/health`, `/api/config`.
 
-**Current repo note (25 Sep 2026):** Linked to Supabase **ukdeos** (`oowdlikrwfoyltrpmvjj`). Migrations/functions empty. App shell still has leftover portal pages — Phase 0 resets that to Heartbeat.
+**Current repo note (25 Sep 2026):** Vite SPA + Vercel `thrumble2/deos-heartbeat` (live Grafana). Supabase project **ukdeos** (`oowdlikrwfoyltrpmvjj`) is **Tokyo** — replace with `eu-west-2` before go-live. **48 active vans** in report config.
+
+### Waiting on (cannot progress in code alone)
+
+| Who | Item |
+| --- | --- |
+| Viv / Jo | UAT (`docs/UAT.md`), van list sign-off (`docs/van-inventory.md`), grey/amber OK |
+| Jo → Viv | Dedicated Grafana Viewer SA; rotate shared `glsa_` token |
+| Guna | n8n cutover (`docs/n8n-report-config.md`); confirm gauge semantics |
+| Thrumble ops | Enable TOTP MFA in Supabase Auth; 12h session in Auth settings |
+| Thrumble / UKDEOS | London Supabase project; `dashboard.ukdeos.com` DNS |
+| Viv | Add report recipients per trust (currently 0) |
 
 **Status key:** Not started · In progress · Blocked · Done
 
@@ -18,12 +29,12 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 
 | Milestone | Weeks | Status |
 | --- | --- | --- |
-| Phase 0 — Discovery & foundation | 1–2 | In progress |
-| Phase 1 — Schema & report config API | 3–4 | In progress |
-| Phase 2 — Auth & report management UI | 5–6 | Done (MFA needs hosted TOTP enabled) |
-| Phase 3 — Fleet API & live dashboard | 7–8 | Done (fixtures until token) |
-| Phase 4 — QA & UAT | 9 | In progress |
-| Phase 5 — Go live & handover | 10 | Not started |
+| Phase 0 — Discovery & foundation | 1–2 | In progress (open questions) |
+| Phase 1 — Schema & report config API | 3–4 | Done (n8n cutover pending Guna) |
+| Phase 2 — Auth & report management UI | 5–6 | Done (enable hosted TOTP) |
+| Phase 3 — Fleet API & live dashboard | 7–8 | Done (live Grafana) |
+| Phase 4 — QA & UAT | 9 | In progress (Viv UAT) |
+| Phase 5 — Go live & handover | 10 | Not started (draft `docs/HANDOVER.md`) |
 
 Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT · Frontend TBC · **Nic** commercial.
 
@@ -67,7 +78,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 ## Phase 1 — Schema, migration & reporting workflow
 
 **Weeks:** 3–4  
-**Status:** In progress (schema started early during Phase 0)  
+**Status:** Done (schema + config API live; n8n cutover pending Guna)  
 **Owner:** Guna
 
 ### Data model
@@ -260,3 +271,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 1/5 | Van inventory + handover draft; Activate-all-suggested; stop fixture auto-discover into DB; block `fixture.*`. |
 | 25 Sep 2026 | 3 | Fleet thresholds reset to scope defaults + admin Thresholds dialog on Fleet. |
 | 25 Sep 2026 | 1 | Activated 48 Grafana-discovered screening vans under suggested trusts; report-config now returns them. |
+| 25 Sep 2026 | 0/5 | PHASES “Waiting on” board; trust display names (NWA/TIC); recipient empty-state copy. |
