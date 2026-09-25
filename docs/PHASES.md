@@ -119,9 +119,9 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 ### `/api/fleet`
 
 - [x] Fan out ~14 PromQL instant queries in parallel (5s timeout each)
-- [x] Merge by instance; exclude `.dserver` hubs
+- [x] Merge by instance; exclude `.dserver` / `-dserver` / `.vserver` hubs, `.router` / `.routerN`, and `xray-mob`
 - [x] Server cache 30s; return `stale: true` + last good payload on Grafana failure
-- [x] Auto-discovery: new Grafana instances → `unassigned` vans
+- [x] Auto-discovery: new Grafana instances → `unassigned` vans (auto-create trust by slug; nicer `display_name`; `modality_target=instance`)
 - [x] `deriveStatus` pure function + unit tests (Red / Grey / Amber / Green)
 - [x] Thresholds from `settings`; per-van `speed_floor` overrides
 - [x] Do **not** store time series; current day only
@@ -251,3 +251,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 4 | More tests (merge, report-config filter, empty/partial Grafana). `/api/health` probes DB + Grafana when token set. |
 | 25 Sep 2026 | 0 | Vercel linked `thrumble2/deos-heartbeat`; Preview+Production env set (no GRAFANA_TOKEN yet). First deploy live. |
 | 25 Sep 2026 | 4 | GitHub repo connected to Vercel. Manual QA checklist added. `/api/uptime` cron every 5m (webhook optional). |
+| 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~52 screening vans. |
