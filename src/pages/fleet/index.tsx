@@ -1,8 +1,10 @@
 import useSWR from 'swr'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { toast } from 'sonner'
 import { PageEmptyState } from '@/components/layout/PageEmptyState'
 import { PageLoading } from '@/components/layout/PageLoading'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Combobox,
   ComboboxContent,
@@ -14,14 +16,26 @@ import {
   ComboboxTrigger,
 } from '@/components/ui/combobox'
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
   Sheet,
   SheetContent,
   SheetDescription,
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
-import type { FleetPayload, FleetStatus, FleetVan } from '@/lib/fleet-types'
+import { supabase } from '@/lib/supabase'
+import type { FleetPayload, FleetStatus, FleetThresholds, FleetVan } from '@/lib/fleet-types'
 
 const fetcher = async (url: string): Promise<FleetPayload> => {
   const response = await fetch(url)
@@ -49,7 +63,9 @@ function countStatuses(vans: FleetVan[]) {
 }
 
 export function FleetPage() {
-  const { data, error, isLoading } = useSWR<FleetPayload>('/api/fleet', fetcher, {
+  const { role } = useAuth()
+  const canWrite = role === 'admin'
+  const { data, error, isLoading, mutate } = useSWR<FleetPayload>('/api/fleet', fetcher, {
     refreshInterval: 60_000,
     refreshWhenHidden: false,
     revalidateOnFocus: true,
@@ -58,6 +74,7 @@ export function FleetPage() {
   const [trustFilter, setTrustFilter] = useState('all')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [selected, setSelected] = useState<FleetVan | null>(null)
+  const [thresholdsOpen, setThresholdsOpen] = useState(false)
 
   const trustOptions = useMemo(() => {
     const trusts = data?.trusts.map((group) => group.trust) ?? []
@@ -108,28 +125,35 @@ export function FleetPage() {
               : null}
           </p>
         </div>
-        <div className="w-[200px]">
-          <Combobox
-            data={trustOptions}
-            type="trust"
-            value={trustFilter}
-            onValueChange={setTrustFilter}
-          >
-            <ComboboxTrigger className="w-full" />
-            <ComboboxContent>
-              <ComboboxInput />
-              <ComboboxList>
-                <ComboboxEmpty>No trust found</ComboboxEmpty>
-                <ComboboxGroup>
-                  {trustOptions.map((option) => (
-                    <ComboboxItem key={option.value} value={option.value}>
-                      {option.label}
-                    </ComboboxItem>
-                  ))}
-                </ComboboxGroup>
-              </ComboboxList>
-            </ComboboxContent>
-          </Combobox>
+        <div className="flex flex-wrap items-center gap-3">
+          {canWrite ? (
+            <Button size="sm" variant="outline" onClick={() => setThresholdsOpen(true)}>
+              Thresholds
+            </Button>
+          ) : null}
+          <div className="w-[200px]">
+            <Combobox
+              data={trustOptions}
+              type="trust"
+              value={trustFilter}
+              onValueChange={setTrustFilter}
+            >
+              <ComboboxTrigger className="w-full" />
+              <ComboboxContent>
+                <ComboboxInput />
+                <ComboboxList>
+                  <ComboboxEmpty>No trust found</ComboboxEmpty>
+                  <ComboboxGroup>
+                    {trustOptions.map((option) => (
+                      <ComboboxItem key={option.value} value={option.value}>
+                        {option.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxGroup>
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+          </div>
         </div>
       </div>
 
@@ -273,6 +297,15 @@ export function FleetPage() {
           ) : null}
         </SheetContent>
       </Sheet>
+
+      {canWrite && data.thresholds ? (
+        <ThresholdsDialog
+          open={thresholdsOpen}
+          onOpenChange={setThresholdsOpen}
+          thresholds={data.thresholds}
+          onSaved={() => void mutate()}
+        />
+      ) : null}
     </div>
   )
 }
@@ -310,5 +343,100 @@ function Metric({
         {value == null || value === '' ? '—' : `${value}${suffix}`}
       </dd>
     </div>
+  )
+}
+
+function ThresholdsDialog({
+  open,
+  onOpenChange,
+  thresholds,
+  onSaved,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  thresholds: FleetThresholds
+  onSaved: () => void
+}) {
+  const [draft, setDraft] = useState(thresholds)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    if (open) setDraft(thresholds)
+  }, [open, thresholds])
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault()
+    setSaving(true)
+    const { error } = await supabase.from('settings').upsert(
+      {
+        key: 'fleet_thresholds',
+        value: {
+          ...draft,
+          poll_interval_seconds: 60,
+        },
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'key' },
+    )
+    setSaving(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Fleet thresholds saved')
+    onOpenChange(false)
+    onSaved()
+  }
+
+  function field(key: keyof FleetThresholds, label: string, step = '1') {
+    return (
+      <div className="space-y-2">
+        <Label htmlFor={`th-${key}`}>{label}</Label>
+        <Input
+          id={`th-${key}`}
+          type="number"
+          step={step}
+          min={0}
+          value={draft[key]}
+          onChange={(event) =>
+            setDraft((prev) => ({
+              ...prev,
+              [key]: Number(event.target.value),
+            }))
+          }
+          required
+        />
+      </div>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <form onSubmit={onSubmit}>
+          <DialogHeader>
+            <DialogTitle>Fleet thresholds</DialogTitle>
+            <DialogDescription>
+              Amber / red rules for the heatmap. Confirm with Viv in UAT (Phase 0 Q6).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {field('speed_floor_mbps', 'Speed floor (MB/s)', '0.05')}
+            {field('failed_queue_amber', 'Failed queue amber at')}
+            {field('retry_queue_amber', 'Retry queue amber at')}
+            {field('progress_amber_pct', 'Midday progress amber %')}
+            {field('scrape_stale_minutes', 'Scrape stale (minutes)')}
+          </div>
+          <DialogFooter className="mt-6">
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" loading={saving} data-dialog-primary-action>
+              Save
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -33,9 +33,18 @@ export type FleetTrustGroup = {
   counts: Record<FleetStatus, number>
 }
 
+export type FleetThresholds = {
+  speed_floor_mbps: number
+  failed_queue_amber: number
+  retry_queue_amber: number
+  progress_amber_pct: number
+  scrape_stale_minutes: number
+}
+
 export type FleetPayload = {
   fetchedAt: string
   stale: boolean
+  thresholds: FleetThresholds
   trusts: FleetTrustGroup[]
   vans: FleetVan[]
   source: 'grafana' | 'fixture' | 'cache'
