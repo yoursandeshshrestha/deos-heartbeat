@@ -129,7 +129,12 @@ async function main() {
   for (const account of ACCOUNTS) {
     await ensureUser(account)
   }
-  await ensureDemoTrust()
+  // Dummy trust/vans for local UI only — set SEED_DEMO=1 to create.
+  if (process.env.SEED_DEMO === '1') {
+    await ensureDemoTrust()
+  } else {
+    console.log('skipping demo trust (set SEED_DEMO=1 to create)')
+  }
   console.log('seed done')
 }
 
