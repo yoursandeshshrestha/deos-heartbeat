@@ -1,0 +1,39 @@
+@font-face {
+  font-family: 'ID Grotesk';
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url('/fonts/IDGrotesk-Light-BF652cb1b459bdf.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IDGrotesk-Regular-BF652cb1b4787d7.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IDGrotesk-Medium-BF652cb1b4765e1.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IDGrotesk-Semibold-BF652cb1b467d9d.woff') format('woff');
+}
+
+@font-face {
+  font-family: 'ID Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/IDGrotesk-Bold-BF652cb1b4740d2.woff') format('woff');
+}
