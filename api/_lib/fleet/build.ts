@@ -173,17 +173,18 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
     const useFixtures = !grafana.token()
     const samples = useFixtures ? fixtureSamples() : await fetchAllFleetSamples()
 
-    const instances = new Set<string>()
-    for (const list of Object.values(samples) as Array<
-      { metric: { instance?: string } }[] | undefined
-    >) {
-      for (const sample of list ?? []) {
-        if (sample.metric.instance) instances.add(sample.metric.instance)
+    if (!useFixtures) {
+      const instances = new Set<string>()
+      for (const list of Object.values(samples) as Array<
+        { metric: { instance?: string } }[] | undefined
+      >) {
+        for (const sample of list ?? []) {
+          if (sample.metric.instance) instances.add(sample.metric.instance)
+        }
       }
+      await autoDiscover([...instances], vans)
+      vans = await loadVans()
     }
-    await autoDiscover([...instances], vans)
-    vans = await loadVans()
-
     const payload = mergeFleetMetrics({
       samples,
       vans,

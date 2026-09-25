@@ -18,8 +18,8 @@ describe('/api/fleet recorded responses', () => {
       vans: [
         {
           id: '1',
-          instance: 'fixture.van1',
-          display_name: 'Fixture',
+          instance: 'acme.van1',
+          display_name: 'Acme',
           trust_id: null,
           status: 'unassigned',
           speed_floor: null,
@@ -30,7 +30,7 @@ describe('/api/fleet recorded responses', () => {
       thresholds: DEFAULT_FLEET_THRESHOLDS,
       fetchedAt: '2026-09-25T00:00:00.000Z',
       stale: false,
-      source: 'fixture',
+      source: 'acme',
     })
 
     expect(payload.vans).toHaveLength(1)
@@ -44,28 +44,28 @@ describe('/api/fleet recorded responses', () => {
       samples: {
         // modality missing = timed out
         patients_today: [
-          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '3'] },
+          { metric: { instance: 'acme.van1', trust: 'acme' }, value: [now, '3'] },
         ],
         worklist_today: [
-          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '5'] },
+          { metric: { instance: 'acme.van1', trust: 'acme' }, value: [now, '5'] },
         ],
         sync_dest_up: [
-          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '0'] },
+          { metric: { instance: 'acme.van1', trust: 'acme' }, value: [now, '0'] },
         ],
         scrape_up: [
-          { metric: { instance: 'fixture.van1', trust: 'fixture' }, value: [now, '1'] },
+          { metric: { instance: 'acme.van1', trust: 'acme' }, value: [now, '1'] },
         ],
       },
       vans: [
         {
           id: '1',
-          instance: 'fixture.van1',
-          display_name: 'Fixture',
+          instance: 'acme.van1',
+          display_name: 'Acme',
           trust_id: 't1',
           status: 'active',
           speed_floor: null,
           modality_target: null,
-          trusts: { id: 't1', name: 'Fixture', slug: 'fixture' },
+          trusts: { id: 't1', name: 'Acme', slug: 'acme' },
         },
       ],
       thresholds: DEFAULT_FLEET_THRESHOLDS,

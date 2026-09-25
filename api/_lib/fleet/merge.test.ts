@@ -40,7 +40,7 @@ describe('mergeFleetMetrics', () => {
       thresholds: DEFAULT_FLEET_THRESHOLDS,
       fetchedAt: new Date().toISOString(),
       stale: false,
-      source: 'fixture',
+      source: 'acme',
     })
 
     expect(payload.vans.map((van) => van.instance)).toEqual(['bradford.van1'])
@@ -59,27 +59,27 @@ describe('mergeFleetMetrics', () => {
             value: [Date.now() / 1000, '0'],
           },
         ],
-        scrape_up: [sample('fixture.van1', 'demo', '1')],
-        sync_dest_up: [sample('fixture.van1', 'demo', '0')],
-        patients_today: [sample('fixture.van1', 'demo', '1')],
-        worklist_today: [sample('fixture.van1', 'demo', '2')],
+        scrape_up: [sample('acme.van1', 'demo', '1')],
+        sync_dest_up: [sample('acme.van1', 'demo', '0')],
+        patients_today: [sample('acme.van1', 'demo', '1')],
+        worklist_today: [sample('acme.van1', 'demo', '2')],
       },
       vans: [
         {
           id: 'db-2',
-          instance: 'fixture.van1',
+          instance: 'acme.van1',
           display_name: 'Demo 1',
           trust_id: 'trust-2',
           status: 'active',
           speed_floor: null,
           modality_target: '10.0.0.5:104',
-          trusts: { id: 'trust-2', name: 'Fixture', slug: 'fixture' },
+          trusts: { id: 'trust-2', name: 'Acme', slug: 'acme' },
         },
       ],
       thresholds: DEFAULT_FLEET_THRESHOLDS,
       fetchedAt: new Date().toISOString(),
       stale: false,
-      source: 'fixture',
+      source: 'acme',
     })
 
     expect(payload.vans).toHaveLength(1)

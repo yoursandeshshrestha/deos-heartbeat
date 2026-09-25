@@ -14,6 +14,7 @@ describe('isExcludedInstance', () => {
     expect(isExcludedInstance('oxford.van1.router2')).toBe(true)
     expect(isExcludedInstance('north_midlands.xray-mob')).toBe(true)
     expect(isExcludedInstance('demo.van1-example')).toBe(true)
+    expect(isExcludedInstance('fixture.van1-example')).toBe(true)
     expect(isExcludedInstance('bradford.van1-penyghent')).toBe(false)
   })
 })

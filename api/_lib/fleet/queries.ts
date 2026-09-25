@@ -26,7 +26,7 @@ export type PromSample = {
 export function isExcludedInstance(instance: string) {
   const lower = instance.toLowerCase()
   // Seed / fixture leftovers — never treat as real fleet
-  if (lower.startsWith('demo.')) return true
+  if (lower.startsWith('demo.') || lower.startsWith('fixture.')) return true
   // hubs / secondary servers
   if (lower.includes('dserver') || lower.endsWith('.vserver')) return true
   // e.g. trust.van.router / trust.van.router2

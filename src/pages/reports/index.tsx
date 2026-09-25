@@ -151,10 +151,60 @@ export function ReportsPage() {
 
         {unassigned.length > 0 ? (
           <section className="mt-10">
-            <h2 className="text-sm font-medium">Unassigned vans</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Auto-discovered from Grafana. Assign to a trust to include in reports.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-medium">Unassigned vans</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Auto-discovered from Grafana. Assign to a trust to include in reports.
+                </p>
+              </div>
+              {canWrite ? (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    void (async () => {
+                      const slugToId = new Map(
+                        trusts.map((trust) => [trust.slug, trust.id] as const),
+                      )
+                      let ok = 0
+                      let skipped = 0
+                      for (const van of unassigned) {
+                        const slug = van.instance.split('.')[0] ?? ''
+                        const trustId = van.trust_id ?? slugToId.get(slug)
+                        if (!trustId) {
+                          skipped += 1
+                          continue
+                        }
+                        const { error } = await supabase
+                          .from('vans')
+                          .update({
+                            trust_id: trustId,
+                            status: 'active',
+                            daily_enabled: true,
+                            weekly_enabled: true,
+                          })
+                          .eq('id', van.id)
+                        if (error) {
+                          toast.error(`${van.instance}: ${error.message}`)
+                          await reload()
+                          return
+                        }
+                        ok += 1
+                      }
+                      toast.success(
+                        `Activated ${ok} van${ok === 1 ? '' : 's'}${
+                          skipped ? ` (${skipped} need a trust first)` : ''
+                        }`,
+                      )
+                      await reload()
+                    })()
+                  }}
+                >
+                  Activate all suggested
+                </Button>
+              ) : null}
+            </div>
             <div className="mt-4 overflow-x-auto">
               <Table>
                 <TableHeader>

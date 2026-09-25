@@ -4,8 +4,8 @@ import { DEFAULT_FLEET_THRESHOLDS, type VanMetrics } from './types'
 
 function base(overrides: Partial<VanMetrics> = {}, now = Date.now()): VanMetrics {
   return {
-    instance: 'fixture.van1',
-    trust: 'fixture',
+    instance: 'acme.van1',
+    trust: 'acme',
     modality_up: 1,
     sync_dest_up: 0,
     patients_today: 5,
