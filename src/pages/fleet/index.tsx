@@ -3,7 +3,6 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { toast } from 'sonner'
 import { PageEmptyState } from '@/components/layout/PageEmptyState'
 import { PageLoading } from '@/components/layout/PageLoading'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Combobox,
@@ -25,6 +24,12 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import {
   Sheet,
   SheetContent,
@@ -133,7 +138,6 @@ export function FleetPage() {
   })
 
   const [trustFilter, setTrustFilter] = useState('all')
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const [selected, setSelected] = useState<FleetVan | null>(null)
   const [thresholdsOpen, setThresholdsOpen] = useState(false)
 
@@ -371,63 +375,107 @@ export function FleetPage() {
             description="Add vans under Reports, or wait for Grafana auto-discovery."
           />
         ) : (
-          <div className="space-y-6">
+          <Accordion
+            key={trustFilter}
+            type="multiple"
+            defaultValue={visibleTrusts.map((group) => group.trust)}
+            className="rounded-2xl"
+          >
             {visibleTrusts.map((group) => {
-              const isCollapsed = collapsed[group.trust] === true
+              const online = group.vans.filter((van) => van.status !== 'red').length
               return (
-                <section key={group.trust}>
-                  <button
-                    type="button"
-                    className="mb-3 flex w-full items-center justify-between text-left"
-                    onClick={() =>
-                      setCollapsed((prev) => ({
-                        ...prev,
-                        [group.trust]: !isCollapsed,
-                      }))
-                    }
-                  >
-                    <div>
-                      <h2 className="text-sm font-medium capitalize">{group.trust}</h2>
-                      <p className="text-xs text-muted-foreground">
-                        {group.vans.length} van{group.vans.length === 1 ? '' : 's'}
-                      </p>
+                <AccordionItem key={group.trust} value={group.trust}>
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                      <div className="min-w-0 text-left">
+                        <h2 className="truncate text-sm font-medium capitalize">
+                          {group.trust.replace(/_/g, ' ')}
+                        </h2>
+                        <p className="text-xs font-normal text-muted-foreground">
+                          {online}/{group.vans.length} online
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {STATUS_ORDER.map((status) =>
+                          group.counts[status] ? (
+                            <span
+                              key={status}
+                              className={cn(
+                                'inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-medium',
+                                STATUS_STYLE[status],
+                              )}
+                            >
+                              {STATUS_LABEL[status]}
+                              <span className="tabular-nums opacity-90">
+                                {group.counts[status]}
+                              </span>
+                            </span>
+                          ) : null,
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap justify-end gap-1">
-                      {STATUS_ORDER.map((status) =>
-                        group.counts[status] ? (
-                          <Badge key={status} variant="outline">
-                            {STATUS_LABEL[status]} {group.counts[status]}
-                          </Badge>
-                        ) : null,
-                      )}
-                    </div>
-                  </button>
-                  {!isCollapsed ? (
-                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2">
                       {group.vans.map((van) => (
                         <button
                           key={van.instance}
                           type="button"
                           onClick={() => setSelected(van)}
-                          className={cn(
-                            'flex min-h-[72px] flex-col items-start justify-between rounded-lg p-3 text-left transition-opacity hover:opacity-90',
-                            STATUS_STYLE[van.status],
-                          )}
+                          className="flex w-full flex-col gap-3 rounded-xl border border-border-subtle bg-background p-3 text-left transition-colors hover:bg-muted/40 sm:flex-row sm:items-stretch"
                         >
-                          <span className="line-clamp-2 text-sm font-medium leading-tight">
-                            {van.display_name}
-                          </span>
-                          <span className="text-[11px] font-medium tracking-wide opacity-90">
+                          <div
+                            className={cn(
+                              'flex shrink-0 items-center justify-center rounded-lg px-3 py-2 text-xs font-medium sm:w-28 sm:flex-col sm:justify-center',
+                              STATUS_STYLE[van.status],
+                            )}
+                          >
                             {STATUS_LABEL[van.status]}
-                          </span>
+                          </div>
+                          <div className="min-w-0 flex-1 space-y-2">
+                            <div className="flex flex-wrap items-baseline justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-medium">
+                                  {van.display_name}
+                                </div>
+                                <div className="truncate font-mono text-[11px] text-muted-foreground">
+                                  {van.instance}
+                                </div>
+                              </div>
+                              <p className="max-w-full text-xs text-muted-foreground sm:max-w-[220px] sm:text-right">
+                                {van.reason}
+                              </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4 lg:grid-cols-6">
+                              <VanMiniStat label="Patients" value={van.patients_today} />
+                              <VanMiniStat label="Studies" value={van.studies_today} />
+                              <VanMiniStat label="Worklist" value={van.worklist_today} />
+                              <VanMiniStat
+                                label="Speed"
+                                value={van.sync_speed}
+                                suffix=" MB/s"
+                              />
+                              <VanMiniStat label="Failed" value={van.sync_failed} />
+                              <VanMiniStat
+                                label="Modality"
+                                value={
+                                  van.modality_up == null
+                                    ? null
+                                    : van.modality_up === 1
+                                      ? 'Up'
+                                      : 'Down'
+                                }
+                              />
+                            </div>
+                          </div>
                         </button>
                       ))}
                     </div>
-                  ) : null}
-                </section>
+                  </AccordionContent>
+                </AccordionItem>
               )
             })}
-          </div>
+          </Accordion>
         )}
       </div>
 
@@ -483,6 +531,34 @@ export function FleetPage() {
           onSaved={() => void mutate()}
         />
       ) : null}
+    </div>
+  )
+}
+
+function VanMiniStat({
+  label,
+  value,
+  suffix = '',
+}: {
+  label: string
+  value: number | string | null
+  suffix?: string
+}) {
+  const display =
+    value == null || value === ''
+      ? '—'
+      : typeof value === 'number'
+        ? Number.isInteger(value)
+          ? String(value)
+          : value.toFixed(2)
+        : value
+  return (
+    <div className="rounded-lg bg-muted/50 px-2.5 py-1.5">
+      <div className="text-[10px] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-medium tabular-nums">
+        {display}
+        {value != null && value !== '' && suffix ? suffix : null}
+      </div>
     </div>
   )
 }
