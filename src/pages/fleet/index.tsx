@@ -141,11 +141,28 @@ export function FleetPage() {
         ) : null}
 
         <div className="flex flex-wrap gap-3 text-sm">
-          <Stat label="Red" value={counts.red} className="text-red-700 dark:text-red-300" />
-          <Stat label="Amber" value={counts.amber} className="text-orange-700 dark:text-orange-300" />
-          <Stat label="Grey" value={counts.grey} className="text-zinc-600 dark:text-zinc-300" />
-          <Stat label="Green" value={counts.green} className="text-emerald-700 dark:text-emerald-300" />
+          <Stat label="Red · offline" value={counts.red} className="text-red-700 dark:text-red-300" />
+          <Stat
+            label="Amber · degraded"
+            value={counts.amber}
+            className="text-orange-700 dark:text-orange-300"
+          />
+          <Stat
+            label="Grey · not scheduled"
+            value={counts.grey}
+            className="text-zinc-600 dark:text-zinc-300"
+          />
+          <Stat
+            label="Green · healthy"
+            value={counts.green}
+            className="text-emerald-700 dark:text-emerald-300"
+          />
         </div>
+        <p className="text-xs text-muted-foreground">
+          Red: modality/sync/scrape down. Grey: online but no worklist or patients today.
+          Amber: sync queues, slow transfer, or low midday progress. Green: passing checks.
+          Open a van for the exact reason.
+        </p>
 
         {!visibleTrusts.length ? (
           <PageEmptyState
