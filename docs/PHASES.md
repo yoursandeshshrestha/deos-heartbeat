@@ -84,7 +84,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 
 ### Integrations
 
-- [ ] Migrate existing trusts, vans, recipients into Postgres — eng: Grafana inventory in [`docs/van-inventory.md`](./van-inventory.md); Reports has Assign + **Activate all suggested**
+- [x] Migrate existing trusts, vans, recipients into Postgres — eng: Grafana-discovered screening vans activated under suggested trusts (48); Viv sign-off still via [`docs/van-inventory.md`](./van-inventory.md)
 - [x] `GET /api/report-config` — API key auth (`REPORT_CONFIG_KEY`); active trusts, vans + flags, recipients
 - [x] `POST /api/report-runs` — same API key; per-trust run result
 - [ ] Update reporting workflow to call config endpoint; run **in parallel** with old hard-coded config for one cycle — eng notes: [`docs/n8n-report-config.md`](./n8n-report-config.md) (awaiting Guna/n8n access)
@@ -176,7 +176,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Fleet heatmap loads (live Grafana; routers/hubs filtered)
 - [x] Trust filter + collapse; van detail sheet metrics
 - [ ] Stale banner path (optional: break Grafana token briefly)
-- [x] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
+- [x] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only — **48 active vans** after migrate
 - [x] `POST /api/report-runs` records success/failure
 - [x] `GET /api/health` returns `ok: true` with DB reachable
 - [ ] Session ends after 12 hours (or simulate by backdating `deos.session.startedAt`)
@@ -259,3 +259,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 3 | Fleet status legend on UI; n8n cutover notes in `docs/n8n-report-config.md`. Demo trust removed. |
 | 25 Sep 2026 | 1/5 | Van inventory + handover draft; Activate-all-suggested; stop fixture auto-discover into DB; block `fixture.*`. |
 | 25 Sep 2026 | 3 | Fleet thresholds reset to scope defaults + admin Thresholds dialog on Fleet. |
+| 25 Sep 2026 | 1 | Activated 48 Grafana-discovered screening vans under suggested trusts; report-config now returns them. |
