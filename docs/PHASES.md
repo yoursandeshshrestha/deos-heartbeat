@@ -57,7 +57,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna — **eng probe:** `probe_success` is 1=OK; `deos_*_status` gauges look like **0=OK / non-zero=error** (`deos_worklist_today_status` shows 0 and 9). `deriveStatus` updated accordingly; confirm with Guna |
 | 3 | How `probe_success{job="modality"}` instances map to van instances | Guna — **eng:** live labels match van `instance` today; `modality_target` defaults to same |
 | 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
-| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** hubs (`.dserver`/`-dserver`/`.vserver`), `.router`/`.routerN`, and `xray-mob` excluded from fleet; ~50 instances remain as unassigned pending Viv’s active list |
+| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** exclusions done; sign-off sheet [`docs/van-inventory.md`](./van-inventory.md) |
 | 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) |
 | 7 | Preferred login; any read-only users at launch? | Jo + Viv |
 | 8 | Subdomain on `ukdeos.com` + who manages DNS | Jo + Viv |
@@ -84,7 +84,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 
 ### Integrations
 
-- [ ] Migrate existing trusts, vans, recipients into Postgres
+- [ ] Migrate existing trusts, vans, recipients into Postgres — eng: Grafana inventory in [`docs/van-inventory.md`](./van-inventory.md); Reports has Assign + **Activate all suggested**
 - [x] `GET /api/report-config` — API key auth (`REPORT_CONFIG_KEY`); active trusts, vans + flags, recipients
 - [x] `POST /api/report-runs` — same API key; per-trust run result
 - [ ] Update reporting workflow to call config endpoint; run **in parallel** with old hard-coded config for one cycle — eng notes: [`docs/n8n-report-config.md`](./n8n-report-config.md) (awaiting Guna/n8n access)
@@ -195,7 +195,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [ ] Production deploy (production Supabase + live Grafana)
 - [ ] Domain e.g. `dashboard.ukdeos.com` (DNS by UKDEOS)
 - [ ] Walkthrough with Viv
-- [ ] Handover notes (incl. no patient-identifiable data statement for NHS trusts)
+- [ ] Handover notes (incl. no patient-identifiable data statement for NHS trusts) — draft [`docs/HANDOVER.md`](./HANDOVER.md)
 - [ ] Confirm maintenance budget: 2–4 eng hours / month
 
 ---
@@ -257,3 +257,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 2 | Unassigned vans: Assign-to-trust + Dismiss; fleet poll soft-removes routers/hubs and backfills trust_id/display_name. |
 | 25 Sep 2026 | 4 | API QA: report-config + report-runs smoke OK; PII audit clean; Viv UAT script in `docs/UAT.md`. Fixed sync_speed PromQL (was NaN). |
 | 25 Sep 2026 | 3 | Fleet status legend on UI; n8n cutover notes in `docs/n8n-report-config.md`. Demo trust removed. |
+| 25 Sep 2026 | 1/5 | Van inventory + handover draft; Activate-all-suggested; stop fixture auto-discover into DB; block `fixture.*`. |
