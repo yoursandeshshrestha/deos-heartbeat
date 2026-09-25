@@ -58,7 +58,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | 3 | How `probe_success{job="modality"}` instances map to van instances | Guna — **eng:** live labels match van `instance` today; `modality_target` defaults to same |
 | 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
 | 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** exclusions done; sign-off sheet [`docs/van-inventory.md`](./van-inventory.md) |
-| 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) |
+| 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) — **eng:** thresholds reset to scope defaults; admin **Thresholds** editor on Fleet |
 | 7 | Preferred login; any read-only users at launch? | Jo + Viv |
 | 8 | Subdomain on `ukdeos.com` + who manages DNS | Jo + Viv |
 
@@ -258,3 +258,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 4 | API QA: report-config + report-runs smoke OK; PII audit clean; Viv UAT script in `docs/UAT.md`. Fixed sync_speed PromQL (was NaN). |
 | 25 Sep 2026 | 3 | Fleet status legend on UI; n8n cutover notes in `docs/n8n-report-config.md`. Demo trust removed. |
 | 25 Sep 2026 | 1/5 | Van inventory + handover draft; Activate-all-suggested; stop fixture auto-discover into DB; block `fixture.*`. |
+| 25 Sep 2026 | 3 | Fleet thresholds reset to scope defaults + admin Thresholds dialog on Fleet. |
