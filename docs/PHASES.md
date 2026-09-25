@@ -136,7 +136,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | patients_today | `orthanc_number_of_patients_today` |
 | studies_today | `orthanc_number_of_studies_today` |
 | worklist_today | `deos_worklist_today_count` |
-| sync_speed | rate avg of `deos_sync_transfer_speed_*` |
+| sync_speed | `avg_over_time(deos_sync_transfer_speed[15m])` (bytes/s → MB/s in merge) |
 | sync_failed / active / complete / retry | `deos_sync_queue_*_count` |
 | db_up / orthanc_up / version / scrape_up | status + `up` |
 
@@ -163,7 +163,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Deploy to Vercel (`thrumble2/deos-heartbeat` + GitHub connected for preview deploys) — live Grafana when `GRAFANA_TOKEN` set
 - [x] `/api/health` — DB probe + Grafana reachability/token check when configured
 - [x] Uptime check every 5 minutes → `/api/uptime` ready; **5‑min Vercel Cron needs Pro** (Hobby blocks it). Set `UPTIME_WEBHOOK_URL` when Pro is enabled, or use an external uptime ping.
-- [ ] Viv UAT with test script
+- [ ] Viv UAT with test script — see [`docs/UAT.md`](./UAT.md)
 
 ### Manual QA checklist
 
@@ -175,11 +175,11 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Fleet heatmap loads (live Grafana; routers/hubs filtered)
 - [ ] Trust filter + collapse; van detail sheet metrics
 - [ ] Stale banner path (optional: break Grafana token briefly)
-- [ ] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
-- [ ] `POST /api/report-runs` records success/failure
+- [x] `GET /api/report-config` with `REPORT_CONFIG_KEY` returns active vans only
+- [x] `POST /api/report-runs` records success/failure
 - [x] `GET /api/health` returns `ok: true` with DB reachable
 - [ ] Session ends after 12 hours (or simulate by backdating `deos.session.startedAt`)
-- [ ] No patient-identifiable fields in UI or API payloads
+- [x] No patient-identifiable fields in UI or API payloads (`patients_today` is a count only)
 
 ---
 
@@ -254,3 +254,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~50 screening vans. Deployed to production. |
 | 25 Sep 2026 | 0/3 | Gauge semantics: `deos_*_status` treated as 0=OK (was inverted); multi-dest sync takes worst code. |
 | 25 Sep 2026 | 2 | Unassigned vans: Assign-to-trust + Dismiss; fleet poll soft-removes routers/hubs and backfills trust_id/display_name. |
+| 25 Sep 2026 | 4 | API QA: report-config + report-runs smoke OK; PII audit clean; Viv UAT script in `docs/UAT.md`. Fixed sync_speed PromQL (was NaN). |
