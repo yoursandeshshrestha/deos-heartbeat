@@ -104,7 +104,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Report management UI: trusts, vans, toggles, recipients
 - [x] Audit log view
 - [x] Soft-delete / pause flows in UI (trust deactivate, van status, recipient active=false)
-- [x] Auto-discovered unassigned vans surfaced to admin (list section; assign flow later with fleet poll)
+- [x] Auto-discovered unassigned vans surfaced to admin (list section; assign / dismiss flow)
 - [x] Security headers (CSP, HSTS in `vercel.json`); rate limit `/api/report-config` + `/api/report-runs`
 - [x] Named Thrumble support account (never share Viv’s login) — `support@thrumble.co.uk` viewer in seed
 
@@ -253,3 +253,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 4 | GitHub repo connected to Vercel. Manual QA checklist added. `/api/uptime` cron every 5m (webhook optional). |
 | 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~50 screening vans. Deployed to production. |
 | 25 Sep 2026 | 0/3 | Gauge semantics: `deos_*_status` treated as 0=OK (was inverted); multi-dest sync takes worst code. |
+| 25 Sep 2026 | 2 | Unassigned vans: Assign-to-trust + Dismiss; fleet poll soft-removes routers/hubs and backfills trust_id/display_name. |
