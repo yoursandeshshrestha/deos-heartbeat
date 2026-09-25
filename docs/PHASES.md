@@ -44,8 +44,8 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Env pattern: `.env.example` + server-only secrets (`GRAFANA_TOKEN`, `REPORT_CONFIG_KEY`, service role); Preview vs Production set in Vercel dashboard
 - [ ] Local seed fixtures from real Grafana CSV exports
 - [x] Confirm Grafana edition/version (`https://mis.ukdeos.com/mon`) — **Open Source 13.2.2**
-- [ ] Confirm Prometheus labels and value semantics (see open questions)
-- [ ] Build instance ↔ van mapping; `vans.modality_target` for modality probe
+- [ ] Confirm Prometheus labels and value semantics (see open questions) — partial: modality 1=OK; deos_*_status 0=OK pending Guna sign-off
+- [x] Build instance ↔ van mapping; `vans.modality_target` for modality probe (defaults to instance; remap supported)
 - [ ] Audit current daily/weekly report workflow (tool assumed n8n; where lists live)
 - [ ] Two UI sessions with Viv; mockups signed off
 
@@ -54,8 +54,8 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | # | Question | Who |
 | --- | --- | --- |
 | 1 | Grafana edition; can UKDEOS create a Viewer service account? | Jo → Viv — **edition confirmed Open Source 13.2.2** via token; still rotate to dedicated Viewer SA before go-live |
-| 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna |
-| 3 | How `probe_success{job="modality"}` instances map to van instances | Guna |
+| 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna — **eng probe:** `probe_success` is 1=OK; `deos_*_status` gauges look like **0=OK / non-zero=error** (`deos_worklist_today_status` shows 0 and 9). `deriveStatus` updated accordingly; confirm with Guna |
+| 3 | How `probe_success{job="modality"}` instances map to van instances | Guna — **eng:** live labels match van `instance` today; `modality_target` defaults to same |
 | 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
 | 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** hubs (`.dserver`/`-dserver`/`.vserver`), `.router`/`.routerN`, and `xray-mob` excluded from fleet; ~50 instances remain as unassigned pending Viv’s active list |
 | 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) |
@@ -252,3 +252,4 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 0 | Vercel linked `thrumble2/deos-heartbeat`; Preview+Production env set (no GRAFANA_TOKEN yet). First deploy live. |
 | 25 Sep 2026 | 4 | GitHub repo connected to Vercel. Manual QA checklist added. `/api/uptime` cron every 5m (webhook optional). |
 | 25 Sep 2026 | 3 | Fleet cleanup: exclude routers/xray-mob from merge+discovery; ensure trusts on discover; display_name from instance. Live probe ~50 screening vans. Deployed to production. |
+| 25 Sep 2026 | 0/3 | Gauge semantics: `deos_*_status` treated as 0=OK (was inverted); multi-dest sync takes worst code. |
