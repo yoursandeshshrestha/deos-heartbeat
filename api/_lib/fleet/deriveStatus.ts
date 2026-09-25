@@ -32,11 +32,12 @@ export function deriveStatus(input: DeriveStatusInput): DeriveStatusResult {
   const floor = num(metrics.speed_floor) ?? thresholds.speed_floor_mbps
 
   // Red: Offline
+  // probe_success: 1 = OK. deos_*_status gauges: 0 = OK, non-zero = error code.
   if (modality === 0) {
     return { status: 'red', reason: 'modality_up = 0' }
   }
-  if (syncDest === 0) {
-    return { status: 'red', reason: 'sync_dest_up = 0' }
+  if (syncDest != null && syncDest !== 0) {
+    return { status: 'red', reason: `sync_dest_up = ${syncDest}` }
   }
   if (scrapeUp === 0) {
     return { status: 'red', reason: 'scrape_up = 0' }

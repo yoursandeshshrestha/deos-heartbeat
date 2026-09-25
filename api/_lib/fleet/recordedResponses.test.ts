@@ -50,7 +50,7 @@ describe('/api/fleet recorded responses', () => {
           { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '5'] },
         ],
         sync_dest_up: [
-          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '1'] },
+          { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '0'] },
         ],
         scrape_up: [
           { metric: { instance: 'demo.van1', trust: 'demo' }, value: [now, '1'] },

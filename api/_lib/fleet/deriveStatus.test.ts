@@ -7,7 +7,7 @@ function base(overrides: Partial<VanMetrics> = {}, now = Date.now()): VanMetrics
     instance: 'demo.van1',
     trust: 'demo',
     modality_up: 1,
-    sync_dest_up: 1,
+    sync_dest_up: 0,
     patients_today: 5,
     studies_today: 5,
     worklist_today: 10,
@@ -16,8 +16,8 @@ function base(overrides: Partial<VanMetrics> = {}, now = Date.now()): VanMetrics
     sync_active: 1,
     sync_complete: 4,
     sync_retry: 0,
-    db_up: 1,
-    orthanc_up: 1,
+    db_up: 0,
+    orthanc_up: 0,
     version: '1.0',
     scrape_up: 1,
     scraped_at: now,
@@ -33,8 +33,8 @@ describe('deriveStatus', () => {
     )
   })
 
-  it('returns red when sync destination is down', () => {
-    expect(deriveStatus({ metrics: base({ sync_dest_up: 0 }), thresholds: DEFAULT_FLEET_THRESHOLDS }).status).toBe(
+  it('returns red when sync destination status is non-zero', () => {
+    expect(deriveStatus({ metrics: base({ sync_dest_up: 1 }), thresholds: DEFAULT_FLEET_THRESHOLDS }).status).toBe(
       'red',
     )
   })

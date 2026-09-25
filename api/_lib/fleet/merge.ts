@@ -99,6 +99,14 @@ export function mergeFleetMetrics(args: {
       } else if (key === 'scrape_up') {
         existing.scrape_up = parsePromValue(sample.value[1])
         existing.scraped_at = sample.value[0] * 1000
+      } else if (key === 'sync_dest_up') {
+        // Multiple destinations per instance (label `name`); keep worst non-zero code.
+        const next = parsePromValue(sample.value[1])
+        if (next != null) {
+          const prev = existing.sync_dest_up
+          existing.sync_dest_up =
+            prev == null ? next : Math.abs(next) >= Math.abs(prev) ? next : prev
+        }
       } else {
         existing[key] = parsePromValue(sample.value[1]) as never
       }
