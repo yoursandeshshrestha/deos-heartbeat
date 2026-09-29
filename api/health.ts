@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { grafana, reportConfigKey, supabase } from './_lib/env.js'
+import { grafana, reportEmail, reportConfigKey, supabase } from './_lib/env.js'
 import { json, methodNotAllowed } from './_lib/http.js'
 import { getServiceClient } from './_lib/supabase.js'
 
@@ -75,6 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     database,
     grafana: grafanaCheck,
     reportConfigKey: Boolean(reportConfigKey()),
+    resendApiKey: Boolean(reportEmail.resendApiKey()),
   }
 
   // App can run on fixtures without Grafana; DB is required for config/auth.

@@ -128,13 +128,13 @@ export function Sidebar({
     <TooltipProvider delayDuration={0}>
       <aside
         className={cn(
-          'flex h-full flex-col bg-sidebar transition-all duration-300',
+          'flex h-full flex-col border-r border-black/6 bg-background transition-all duration-300 dark:border-white/6 dark:bg-sidebar',
           isMobile ? 'w-full' : cn('hidden h-dvh md:flex', collapsed ? 'w-16' : 'w-[288px]'),
         )}
       >
         <div
           className={cn(
-            'flex h-12 shrink-0 items-center',
+            'flex h-12 shrink-0 items-center border-b border-black/6 dark:border-white/6',
             collapsed ? 'justify-center px-2' : 'justify-between px-3',
           )}
         >
@@ -237,7 +237,7 @@ function SidebarFooter({
   const displayLabel = label ?? 'Account'
 
   return (
-    <div className={cn('shrink-0 px-2 pb-3', collapsed && 'flex justify-center')}>
+    <div className={cn('shrink-0 border-t border-black/6 px-2 py-3 dark:border-white/6', collapsed && 'flex justify-center')}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button
