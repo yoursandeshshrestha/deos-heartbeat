@@ -11,22 +11,22 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-[#124046] text-white shadow-none hover:bg-[#0e3438] focus-visible:ring-[#124046]/30",
+          "relative overflow-hidden border border-(--kumo-button-emphasis-ring) bg-(--kumo-button-emphasis-bg) text-white focus-visible:ring-(--kumo-button-emphasis-ring)/40",
         outline:
-          "border-[0.5px] border-border-subtle bg-surface text-foreground hover:bg-surface-hover hover:text-foreground focus-visible:ring-0 aria-expanded:bg-muted aria-expanded:text-foreground",
+          "relative overflow-hidden border border-border-subtle bg-(--kumo-button-emphasis-bg) text-foreground hover:text-foreground focus-visible:ring-0 aria-expanded:bg-muted aria-expanded:text-foreground",
         secondary:
-          "bg-surface-hover text-secondary-foreground hover:bg-secondary-200 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground dark:bg-secondary-700 dark:text-foreground dark:hover:bg-secondary-600",
+          "relative overflow-hidden border border-border-subtle bg-(--kumo-button-emphasis-bg) text-secondary-foreground focus-visible:ring-0 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "border border-transparent hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow-none hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:border-transparent dark:bg-destructive dark:text-destructive-foreground dark:hover:bg-destructive/85 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "relative overflow-hidden border border-(--kumo-button-emphasis-ring) bg-(--kumo-button-emphasis-bg) text-white focus-visible:ring-(--kumo-button-emphasis-ring)/40",
+        link: "border border-transparent text-primary underline-offset-4 hover:underline",
         oauth:
-          "bg-oauth-primary text-oauth-primary-foreground hover:bg-oauth-primary-hover",
+          "relative overflow-hidden border border-(--kumo-button-emphasis-ring) bg-(--kumo-button-emphasis-bg) text-oauth-primary-foreground focus-visible:ring-(--kumo-button-emphasis-ring)/40",
         auth:
-          "border-transparent bg-black text-white shadow-none hover:bg-black/85 focus-visible:ring-0 dark:bg-secondary-100 dark:text-[#141414] dark:hover:bg-secondary-100/90",
+          "relative overflow-hidden border border-(--kumo-button-emphasis-ring) bg-(--kumo-button-emphasis-bg) text-white focus-visible:ring-(--kumo-button-emphasis-ring)/40",
         surface:
-          "bg-secondary-800 text-secondary-foreground hover:bg-secondary-700",
+          "relative overflow-hidden border border-(--kumo-button-emphasis-ring) bg-(--kumo-button-emphasis-bg) text-secondary-foreground focus-visible:ring-(--kumo-button-emphasis-ring)/40",
       },
       size: {
         default:
@@ -48,6 +48,61 @@ const buttonVariants = cva(
   }
 )
 
+type ButtonVariant = NonNullable<VariantProps<typeof buttonVariants>["variant"]>
+
+type EmphasisKind = "brand" | "danger" | "soft" | "oauth" | "surface"
+
+function getEmphasisKind(
+  variant: ButtonVariant | null | undefined,
+): EmphasisKind | undefined {
+  if (variant === "default" || variant === "auth") return "brand"
+  if (variant === "destructive") return "danger"
+  if (variant === "outline" || variant === "secondary") return "soft"
+  if (variant === "oauth") return "oauth"
+  if (variant === "surface") return "surface"
+  return undefined
+}
+
+function getEmphasisStyle(
+  variant: ButtonVariant | null | undefined,
+): React.CSSProperties | undefined {
+  const kind = getEmphasisKind(variant)
+  if (!kind) return undefined
+
+  if (kind === "soft") {
+    return {
+      "--kumo-button-emphasis-ring": "var(--border-subtle)",
+      "--kumo-button-emphasis-bg": "var(--surface)",
+      "--kumo-button-emphasis-gradient-start": "var(--surface)",
+      "--kumo-button-emphasis-gradient-end": "var(--surface-hover)",
+    } as React.CSSProperties
+  }
+
+  if (kind === "brand") {
+    const token = "#16163F"
+    return {
+      "--kumo-button-emphasis-ring": token,
+      "--kumo-button-emphasis-bg": token,
+      "--kumo-button-emphasis-gradient-start": `color-mix(in oklch, ${token}, white 8%)`,
+      "--kumo-button-emphasis-gradient-end": token,
+    } as React.CSSProperties
+  }
+
+  const token =
+    kind === "danger"
+      ? "var(--destructive)"
+      : kind === "oauth"
+        ? "var(--oauth-primary)"
+        : "var(--secondary-800)"
+
+  return {
+    "--kumo-button-emphasis-ring": `color-mix(in oklch, ${token}, black 10%)`,
+    "--kumo-button-emphasis-bg": `color-mix(in oklch, ${token}, white 30%)`,
+    "--kumo-button-emphasis-gradient-start": `color-mix(in oklch, ${token}, white 15%)`,
+    "--kumo-button-emphasis-gradient-end": token,
+  } as React.CSSProperties
+}
+
 function Button({
   className,
   variant = "default",
@@ -57,6 +112,7 @@ function Button({
   disableActiveShift = false,
   children,
   disabled,
+  style,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
@@ -68,6 +124,8 @@ function Button({
   const activeShiftClassName = disableActiveShift
     ? undefined
     : "active:not-aria-[haspopup]:translate-y-px"
+  const emphasisStyle = getEmphasisStyle(variant)
+  const mergedStyle = emphasisStyle ? { ...emphasisStyle, ...style } : style
 
   if (asChild) {
     return (
@@ -78,6 +136,7 @@ function Button({
         className={cn(buttonVariants({ variant, size }), activeShiftClassName, className)}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
+        style={mergedStyle}
         {...props}
       >
         {children}
@@ -98,10 +157,24 @@ function Button({
       )}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
+      style={mergedStyle}
       {...props}
     >
-      {loading ? <Spinner size="xs" /> : null}
-      {children}
+      {emphasisStyle ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-linear-to-b from-(--kumo-button-emphasis-gradient-start) to-(--kumo-button-emphasis-gradient-end) shadow-[inset_0_1px_0_0_var(--kumo-button-emphasis-bg)] group-hover/button:from-(--kumo-button-emphasis-bg)"
+        />
+      ) : null}
+      <span
+        className={cn(
+          "inline-flex h-full w-full min-w-0 max-w-full items-center justify-center gap-[inherit]",
+          emphasisStyle && "relative z-10",
+        )}
+      >
+        {loading ? <Spinner size="xs" /> : null}
+        {children}
+      </span>
     </Comp>
   )
 }

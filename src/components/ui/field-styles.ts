@@ -8,7 +8,7 @@ export const modalOverlayClassName =
 
 /** Dropdown / popover / command panel surface */
 export const menuContentClassName =
-  'rounded-xl bg-popover text-popover-foreground shadow-2xl ring-1 ring-foreground/5'
+  'rounded-lg bg-surface text-foreground shadow-xs ring-1 ring-border-subtle'
 
 /** Segmented control container (tabs list, toggle group) */
 export const segmentedControlClassName = 'rounded-xl'

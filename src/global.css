@@ -93,13 +93,13 @@
 }
 
 :root {
-    --background: oklch(0.975 0 0);
+    --background: #fafbfb;
     --foreground: oklch(0.145 0 0);
-    --card: oklch(0.955 0 0);
+    --card: #ffffff;
     --card-foreground: oklch(0.145 0 0);
-    --surface: oklch(0.955 0 0);
-    --surface-hover: oklch(0.935 0 0);
-    --popover: oklch(0.955 0 0);
+    --surface: #ffffff;
+    --surface-hover: oklch(0.975 0 0);
+    --popover: #ffffff;
     --popover-foreground: oklch(0.145 0 0);
     --primary: oklch(0.145 0 0);
     --primary-foreground: oklch(0.99 0 0);
@@ -130,13 +130,13 @@
     --chart-4: oklch(0.828 0.189 84.429);
     --chart-5: oklch(0.769 0.188 70.08);
     --radius: 0.55rem;
-    --sidebar: oklch(0.955 0 0);
+    --sidebar: #fafbfb;
     --sidebar-foreground: oklch(0.145 0 0);
     --sidebar-primary: oklch(0.145 0 0);
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: var(--secondary-200);
+    --sidebar-accent: #f3f3f3;
     --sidebar-accent-foreground: oklch(0.145 0 0);
-    --sidebar-border: transparent;
+    --sidebar-border: var(--border);
     --sidebar-ring: oklch(0.708 0 0);
     --warning: oklch(0.82 0.16 85);
     --switch-active: oklch(0.48 0.19 145);
@@ -189,7 +189,7 @@
     --sidebar-primary-foreground: var(--primary-foreground);
     --sidebar-accent: #282828;
     --sidebar-accent-foreground: var(--primary);
-    --sidebar-border: transparent;
+    --sidebar-border: oklch(100% 0 89.9 / 0.08);
     --sidebar-ring: var(--ring);
     --warning: oklch(82.64% 0.1362 69.2);
     --switch-active: oklch(0.59 0.18 145);
@@ -209,10 +209,68 @@
     height: 100dvh;
   }
   html {
-    @apply font-sans;
+    @apply bg-background font-sans;
     overscroll-behavior: none;
     overflow: hidden;
     height: 100%;
+  }
+  #root {
+    @apply bg-background;
+    min-height: 100%;
+  }
+
+  :where(
+    a[href],
+    button,
+    summary,
+    label[for],
+    select,
+    input[type='button'],
+    input[type='submit'],
+    input[type='reset'],
+    input[type='checkbox'],
+    input[type='radio'],
+    input[type='file'],
+    input[type='color'],
+    input[type='range'],
+    [role='button'],
+    [role='link'],
+    [role='menuitem'],
+    [role='menuitemcheckbox'],
+    [role='menuitemradio'],
+    [role='option'],
+    [role='tab'],
+    [role='switch'],
+    [role='checkbox'],
+    [role='radio'],
+    [role='combobox'],
+    [role='listbox'],
+    [role='slider'],
+    [role='treeitem'],
+    [data-slot='button'],
+    [data-slot='dropdown-menu-item'],
+    [data-slot='dropdown-menu-checkbox-item'],
+    [data-slot='dropdown-menu-radio-item'],
+    [data-slot='dropdown-menu-sub-trigger'],
+    [data-slot='command-item'],
+    [data-slot='select-item'],
+    [data-slot='combobox-item'],
+    [data-slot='checkbox'],
+    [data-slot='switch'],
+    [data-slot='radio-group-item'],
+    [tabindex]:not([tabindex='-1'])
+  ) {
+    cursor: pointer;
+  }
+
+  :where(
+    :disabled,
+    [disabled],
+    [aria-disabled='true'],
+    [data-disabled],
+    [data-disabled='true']
+  ) {
+    cursor: not-allowed;
   }
 
   * {
@@ -251,8 +309,7 @@
   }
 
   .content-section__header {
-    @apply sticky top-0 z-20 bg-background;
-    width: 100%;
+    @apply w-full bg-background;
   }
 
   .content-section__divider {
