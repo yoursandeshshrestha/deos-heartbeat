@@ -2,9 +2,9 @@
 
 Heartbeat sends **one HTML + text email per trust** via [Resend](https://resend.com), using live fleet metrics. No external n8n workflow is required for delivery.
 
-**Endpoint:** `GET|POST /api/reports/send`  
-**Auth:** `Authorization: Bearer $CRON_SECRET` (Vercel Cron) **or** admin Supabase access token  
-**Env (Vercel + local):** `RESEND_API_KEY`, `REPORT_FROM_EMAIL`, `REPORT_FROM_NAME`, `CRON_SECRET`
+**Endpoint:** `GET|POST /functions/v1/api/reports/send` on the Supabase project  
+**Auth:** `Authorization: Bearer $CRON_SECRET` (pg_cron) **or** admin Supabase access token  
+**Secrets (Supabase Edge Functions, not Vercel):** `RESEND_API_KEY`, `GRAFANA_TOKEN`, `CRON_SECRET`, `REPORT_CONFIG_KEY`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected into the function. `REPORT_FROM_EMAIL` defaults to `no-reply@mail.thrumble.ai`.
 
 ## Eligibility
 
@@ -22,16 +22,12 @@ Weekly PDF (the previous seven London days, Monday–Sunday when the Monday cron
 
 Admins choose which of those figures appear under **Reports → PDF contents**. The choice is stored in `settings.report_pdf` and applies to every trust. At least one figure stays on.
 
-## Schedules (Vercel Cron)
+## Schedules (Supabase pg_cron)
 
-Defined in `vercel.json` (UTC; ~06:00 Europe/London in BST):
-
-| Report  | Path                                         | Cron            |
-|---------|----------------------------------------------|-----------------|
-| Daily   | `/api/reports/send?report_type=daily`        | `0 5 * * *`     |
-| Weekly  | `/api/reports/send?report_type=weekly`       | `30 5 * * 1`    |
-
-**Hobby plan:** Vercel allows a limited number of cron jobs; same caveat as uptime. Set `CRON_SECRET` in the project so Cron requests are authenticated.
+| Report  | Path                                                         | Cron            |
+|---------|--------------------------------------------------------------|-----------------|
+| Daily   | `/functions/v1/api/reports/send?report_type=daily`           | `0 5 * * *`     |
+| Weekly  | `/functions/v1/api/reports/send?report_type=weekly`          | `30 5 * * 1`    |
 
 ## Admin test send
 
@@ -64,7 +60,7 @@ curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" \
 
 ## Ops checklist
 
-1. Set `RESEND_API_KEY` on Vercel (prefer a dedicated UKDEOS key; local/dev may reuse Thrumble temporarily).
-2. Verify `REPORT_FROM_EMAIL` domain in the Resend dashboard (e.g. `reports@mail.thrumble.ai` until UKDEOS mail is verified).
-3. Set `CRON_SECRET` and confirm cron hits return `200` with `{ sent, failed, skipped }`.
+1. Set `RESEND_API_KEY`, `GRAFANA_TOKEN`, and `CRON_SECRET` with `supabase secrets set` (not on Vercel).
+2. Verify the from-domain `no-reply@mail.thrumble.ai` in the Resend dashboard.
+3. Confirm the daily cron returns `{ sent, failed, skipped }`.
 4. Add recipients per trust in the Reports UI before expecting production mail.
