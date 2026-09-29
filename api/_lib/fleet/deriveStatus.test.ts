@@ -22,6 +22,8 @@ function base(overrides: Partial<VanMetrics> = {}, now = Date.now()): VanMetrics
     scrape_up: 1,
     scraped_at: now,
     speed_floor: null,
+    latitude: null,
+    longitude: null,
     ...overrides,
   }
 }

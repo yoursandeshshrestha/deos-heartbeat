@@ -9,6 +9,7 @@ import {
   trustSlugFromInstance,
 } from './queries.js'
 import { fetchAllFleetSamples } from './grafana.js'
+import { applyLastKnownLocations } from './locations.js'
 import {
   DEFAULT_FLEET_THRESHOLDS,
   type FleetPayload,
@@ -201,14 +202,16 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
       await autoDiscover([...instances], vans)
       vans = await loadVans()
     }
-    const payload = mergeFleetMetrics({
-      samples,
-      vans,
-      thresholds,
-      fetchedAt,
-      stale: false,
-      source: useFixtures ? 'fixture' : 'grafana',
-    })
+    const payload = await applyLastKnownLocations(
+      mergeFleetMetrics({
+        samples,
+        vans,
+        thresholds,
+        fetchedAt,
+        stale: false,
+        source: useFixtures ? 'fixture' : 'grafana',
+      }),
+    )
     setFleetCache(payload)
     return payload
   } catch (error) {
@@ -221,14 +224,16 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
       }
     }
 
-    const payload = mergeFleetMetrics({
-      samples: fixtureSamples(),
-      vans,
-      thresholds,
-      fetchedAt,
-      stale: true,
-      source: 'fixture',
-    })
+    const payload = await applyLastKnownLocations(
+      mergeFleetMetrics({
+        samples: fixtureSamples(),
+        vans,
+        thresholds,
+        fetchedAt,
+        stale: true,
+        source: 'fixture',
+      }),
+    )
     void error
     setFleetCache(payload)
     return payload

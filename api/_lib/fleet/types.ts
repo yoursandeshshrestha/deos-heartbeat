@@ -36,6 +36,8 @@ export type VanMetrics = {
   /** Epoch ms of last successful scrape, if known */
   scraped_at: number | null
   speed_floor: number | null
+  latitude: number | null
+  longitude: number | null
 }
 
 export type DeriveStatusInput = {
@@ -56,6 +58,8 @@ export type FleetVan = VanMetrics & {
   status: FleetStatus
   reason: string
   van_status: 'active' | 'paused' | 'unassigned' | 'removed' | null
+  gps_source: 'live' | 'last_known' | null
+  gps_recorded_at: string | null
 }
 
 export type FleetTrustGroup = {

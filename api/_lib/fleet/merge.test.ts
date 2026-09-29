@@ -40,7 +40,7 @@ describe('mergeFleetMetrics', () => {
       thresholds: DEFAULT_FLEET_THRESHOLDS,
       fetchedAt: new Date().toISOString(),
       stale: false,
-      source: 'acme',
+      source: 'fixture',
     })
 
     expect(payload.vans.map((van) => van.instance)).toEqual(['bradford.van1'])
@@ -79,7 +79,7 @@ describe('mergeFleetMetrics', () => {
       thresholds: DEFAULT_FLEET_THRESHOLDS,
       fetchedAt: new Date().toISOString(),
       stale: false,
-      source: 'acme',
+      source: 'fixture',
     })
 
     expect(payload.vans).toHaveLength(1)

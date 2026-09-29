@@ -24,6 +24,11 @@ export type FleetVan = {
   scrape_up: number | null
   scraped_at: number | null
   speed_floor: number | null
+  latitude: number | null
+  longitude: number | null
+  /** live = current scrape; last_known = stored previous fix */
+  gps_source: 'live' | 'last_known' | null
+  gps_recorded_at: string | null
 }
 
 export type FleetTrustGroup = {

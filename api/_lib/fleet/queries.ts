@@ -13,6 +13,8 @@ export const FLEET_QUERIES = {
   orthanc_up: 'deos_orthanc_status',
   version: 'deos_version',
   scrape_up: 'up',
+  latitude: 'snmp_latitude',
+  longitude: 'snmp_longitude',
 } as const
 
 export type FleetMetricKey = keyof typeof FLEET_QUERIES

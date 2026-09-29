@@ -44,6 +44,8 @@ export function fixtureSamples(): Partial<Record<FleetMetricKey, PromSample[]>> 
       db_up: 0,
       orthanc_up: 0,
       scrape_up: 1,
+      latitude: 51.5074,
+      longitude: -0.1278,
     }),
     van('bradford.van3-ingleborough', 'bradford', {
       modality_up: 0,
@@ -59,6 +61,8 @@ export function fixtureSamples(): Partial<Record<FleetMetricKey, PromSample[]>> 
       db_up: 0,
       orthanc_up: 0,
       scrape_up: 1,
+      latitude: 53.796,
+      longitude: -1.7594,
     }),
     van('derby.van4-quiet', 'derby', {
       modality_up: 1,
@@ -74,6 +78,8 @@ export function fixtureSamples(): Partial<Record<FleetMetricKey, PromSample[]>> 
       db_up: 0,
       orthanc_up: 0,
       scrape_up: 1,
+      latitude: 52.9225,
+      longitude: -1.4746,
     }),
     van('reading.perky', 'reading', {
       modality_up: 1,
@@ -89,6 +95,8 @@ export function fixtureSamples(): Partial<Record<FleetMetricKey, PromSample[]>> 
       db_up: 0,
       orthanc_up: 0,
       scrape_up: 1,
+      latitude: 51.4543,
+      longitude: -0.9781,
     }),
   )
 }

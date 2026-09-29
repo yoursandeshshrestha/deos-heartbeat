@@ -46,6 +46,8 @@ function emptyMetrics(instance: string, trust: string | null): VanMetrics {
     scrape_up: null,
     scraped_at: null,
     speed_floor: null,
+    latitude: null,
+    longitude: null,
   }
 }
 
@@ -143,6 +145,11 @@ export function mergeFleetMetrics(args: {
       speed_floor: Number.isFinite(speedFloor) ? speedFloor : null,
     }
     const derived = deriveStatus({ metrics: withFloor, thresholds: args.thresholds })
+    const liveGps =
+      typeof withFloor.latitude === 'number' &&
+      Number.isFinite(withFloor.latitude) &&
+      typeof withFloor.longitude === 'number' &&
+      Number.isFinite(withFloor.longitude)
     fleetVans.push({
       ...withFloor,
       id: dbVan?.id ?? null,
@@ -150,6 +157,8 @@ export function mergeFleetMetrics(args: {
       status: derived.status,
       reason: derived.reason,
       van_status: dbVan?.status ?? null,
+      gps_source: liveGps ? 'live' : null,
+      gps_recorded_at: liveGps ? args.fetchedAt : null,
     })
   }
 

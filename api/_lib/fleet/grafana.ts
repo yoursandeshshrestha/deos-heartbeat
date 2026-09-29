@@ -34,6 +34,51 @@ async function queryInstant(promql: string): Promise<PromSample[]> {
   }
 }
 
+export type PromRangeSample = {
+  metric: Record<string, string>
+  values: Array<[number, string]>
+}
+
+/** Range query for report history. Longer timeout than the live fleet poll. */
+export async function queryRange(
+  promql: string,
+  startSec: number,
+  endSec: number,
+  stepSec: number,
+): Promise<PromRangeSample[]> {
+  const base = grafana.baseUrl().replace(/\/$/, '')
+  const uid = grafana.prometheusUid()
+  const token = grafana.token()
+  if (!token) throw new Error('GRAFANA_TOKEN not configured')
+
+  const url = new URL(
+    `${base}/api/datasources/proxy/uid/${uid}/api/v1/query_range`,
+  )
+  url.searchParams.set('query', promql)
+  url.searchParams.set('start', String(startSec))
+  url.searchParams.set('end', String(endSec))
+  url.searchParams.set('step', String(stepSec))
+
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), 20_000)
+
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+    if (!response.ok) {
+      throw new Error(`Grafana ${response.status}`)
+    }
+    const body = (await response.json()) as {
+      data?: { result?: PromRangeSample[] }
+    }
+    return body.data?.result ?? []
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
 export async function fetchAllFleetSamples(): Promise<
   Partial<Record<FleetMetricKey, PromSample[]>>
 > {
