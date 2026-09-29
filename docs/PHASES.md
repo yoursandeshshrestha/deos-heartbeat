@@ -6,9 +6,9 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 
 **Stack (decided):** Vite + React + TypeScript SPA (keep this repo; not Next.js). Hosted on Vercel (`lhr1`). shadcn/ui + Tailwind. SWR (60s poll). Supabase Postgres + Auth (`eu-west-2`) with SQL migrations + supabase-js. Sentry + uptime check.
 
-**API note:** Scope’s `/api/*` routes become Vercel serverless functions (or Supabase Edge Functions) beside the SPA so `GRAFANA_TOKEN` and `REPORT_CONFIG_KEY` never reach the browser. Same contracts: `/api/fleet`, `/api/report-config`, `/api/report-runs`, `/api/health`, `/api/config`.
+**API note:** Scope’s `/api/*` routes become Vercel serverless functions (or Supabase Edge Functions) beside the SPA so `GRAFANA_TOKEN` and `RESEND_API_KEY` never reach the browser. Contracts: `/api/fleet`, `/api/reports/send`, `/api/report-config` (optional compat), `/api/report-runs` (optional compat), `/api/health`, `/api/config`.
 
-**Current repo note (25 Sep 2026):** Vite SPA + Vercel `thrumble2/deos-heartbeat` (live Grafana). Supabase project **ukdeos** (`oowdlikrwfoyltrpmvjj`) is **Tokyo** — replace with `eu-west-2` before go-live. **48 active vans** in report config.
+**Current repo note (25 Sep 2026):** Vite SPA + Vercel `thrumble2/deos-heartbeat` (live Grafana). Supabase project **ukdeos** (`oowdlikrwfoyltrpmvjj`) is **Tokyo** — replace with `eu-west-2` before go-live. **48 active vans** in report config. Daily/weekly emails sent in-app via Resend (see [`docs/report-email.md`](./report-email.md)).
 
 ### Waiting on (cannot progress in code alone)
 
@@ -16,9 +16,9 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 | --- | --- |
 | Viv / Jo | UAT (`docs/UAT.md`), van list sign-off (`docs/van-inventory.md`), grey/amber OK |
 | Jo → Viv | Dedicated Grafana Viewer SA; rotate shared `glsa_` token |
-| Guna | n8n cutover (`docs/n8n-report-config.md`); confirm gauge semantics |
+| Guna | Confirm gauge semantics (`deos_*_status` 0=OK) |
 | Thrumble ops | Enable TOTP MFA in Supabase Auth; 12h session in Auth settings |
-| Thrumble / UKDEOS | London Supabase project; `dashboard.ukdeos.com` DNS |
+| Thrumble / UKDEOS | London Supabase project; `dashboard.ukdeos.com` DNS; verify Resend from-domain |
 | Viv | Add report recipients per trust (currently 0) |
 
 **Status key:** Not started · In progress · Blocked · Done
@@ -30,7 +30,7 @@ Living checklist for the engineering build. Maps 1:1 to [Deos Heartbeat Lite Tec
 | Milestone | Weeks | Status |
 | --- | --- | --- |
 | Phase 0 — Discovery & foundation | 1–2 | In progress (open questions) |
-| Phase 1 — Schema & report config API | 3–4 | Done (n8n cutover pending Guna) |
+| Phase 1 — Schema & report config API | 3–4 | Done (in-app Resend send) |
 | Phase 2 — Auth & report management UI | 5–6 | Done (enable hosted TOTP) |
 | Phase 3 — Fleet API & live dashboard | 7–8 | Done (live Grafana) |
 | Phase 4 — QA & UAT | 9 | In progress (Viv UAT) |
@@ -52,12 +52,12 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Strip leftover portal UI; Heartbeat shell (login + app layout)
 - [x] Vercel scaffolding: `vercel.json` (`lhr1`), SPA rewrites, security headers, stub `/api/*` routes — **linked to `thrumble2/deos-heartbeat`**
 - [ ] Supabase Pro in `eu-west-2` — **blocked:** linked `ukdeos` (`oowdlikrwfoyltrpmvjj`) is **Northeast Asia (Tokyo)**, not London. WALG on, PITR off, no backup timestamps yet (new project). Needs new project in `eu-west-2` (ideally Thrumble org) before go-live.
-- [x] Env pattern: `.env.example` + server-only secrets (`GRAFANA_TOKEN`, `REPORT_CONFIG_KEY`, service role); Preview vs Production set in Vercel dashboard
+- [x] Env pattern: `.env.example` + server-only secrets (`GRAFANA_TOKEN`, `RESEND_API_KEY`, service role); Preview vs Production set in Vercel dashboard
 - [ ] Local seed fixtures from real Grafana CSV exports
 - [x] Confirm Grafana edition/version (`https://mis.ukdeos.com/mon`) — **Open Source 13.2.2**
 - [ ] Confirm Prometheus labels and value semantics (see open questions) — partial: modality 1=OK; deos_*_status 0=OK pending Guna sign-off
 - [x] Build instance ↔ van mapping; `vans.modality_target` for modality probe (defaults to instance; remap supported)
-- [ ] Audit current daily/weekly report workflow (tool assumed n8n; where lists live)
+- [x] Daily/weekly report delivery owned by Heartbeat (Resend + Vercel Cron) — [`docs/report-email.md`](./report-email.md)
 - [ ] Two UI sessions with Viv; mockups signed off
 
 ### Week 1 open questions (must resolve)
@@ -67,9 +67,8 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 | 1 | Grafana edition; can UKDEOS create a Viewer service account? | Jo → Viv — **edition confirmed Open Source 13.2.2** via token; still rotate to dedicated Viewer SA before go-live |
 | 2 | Semantics of `deos_sync_destination_status` and `deos_*` gauges (1 = OK?) | Guna — **eng probe:** `probe_success` is 1=OK; `deos_*_status` gauges look like **0=OK / non-zero=error** (`deos_worklist_today_status` shows 0 and 9). `deriveStatus` updated accordingly; confirm with Guna |
 | 3 | How `probe_success{job="modality"}` instances map to van instances | Guna — **eng:** live labels match van `instance` today; `modality_target` defaults to same |
-| 4 | Which tool runs daily/weekly reports, and where lists live | Guna |
-| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** exclusions done; sign-off sheet [`docs/van-inventory.md`](./van-inventory.md) |
-| 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) — **eng:** thresholds reset to scope defaults; admin **Thresholds** editor on Fleet |
+| 4 | Which tool runs daily/weekly reports, and where lists live | **Resolved:** Heartbeat sends via Resend ([`docs/report-email.md`](./report-email.md)); config lives in Supabase |
+| 5 | Exact active van list (exclude `.dserver`, xray-mob?); TIC entry | Jo + Viv — **eng:** exclusions done; sign-off sheet [`docs/van-inventory.md`](./van-inventory.md) || 6 | Grey “not scheduled” + amber thresholds OK with Viv | Jo (UI sessions) — **eng:** thresholds reset to scope defaults; admin **Thresholds** editor on Fleet |
 | 7 | Preferred login; any read-only users at launch? | Jo + Viv |
 | 8 | Subdomain on `ukdeos.com` + who manages DNS | Jo + Viv |
 
@@ -78,7 +77,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 ## Phase 1 — Schema, migration & reporting workflow
 
 **Weeks:** 3–4  
-**Status:** Done (schema + config API live; n8n cutover pending Guna)  
+**Status:** Done (schema + in-app Resend send)  
 **Owner:** Guna
 
 ### Data model
@@ -96,10 +95,10 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 ### Integrations
 
 - [x] Migrate existing trusts, vans, recipients into Postgres — eng: Grafana-discovered screening vans activated under suggested trusts (48); Viv sign-off still via [`docs/van-inventory.md`](./van-inventory.md)
-- [x] `GET /api/report-config` — API key auth (`REPORT_CONFIG_KEY`); active trusts, vans + flags, recipients
-- [x] `POST /api/report-runs` — same API key; per-trust run result
-- [ ] Update reporting workflow to call config endpoint; run **in parallel** with old hard-coded config for one cycle — eng notes: [`docs/n8n-report-config.md`](./n8n-report-config.md) (awaiting Guna/n8n access)
-- [x] Persist last successful config snapshot in `settings.report_config_last_ok` (workflow-side unreachable fallback + Thrumble alert still TBD)
+- [x] `GET /api/report-config` — optional compat API key (`REPORT_CONFIG_KEY`); active trusts, vans + flags, recipients
+- [x] `POST /api/report-runs` — optional compat; per-trust run result (Heartbeat send path writes `report_runs` itself)
+- [x] In-app send: `GET|POST /api/reports/send` via Resend + Vercel Cron — [`docs/report-email.md`](./report-email.md)
+- [x] Persist last successful config snapshot in `settings.report_config_last_ok`
 - [ ] Do **not** touch Wednesday Email Tracking Automation
 
 ---
@@ -267,8 +266,9 @@ Complete Visibility bundle = map + history + daily/weekly. Confirmed add-ons by 
 | 25 Sep 2026 | 0/3 | Gauge semantics: `deos_*_status` treated as 0=OK (was inverted); multi-dest sync takes worst code. |
 | 25 Sep 2026 | 2 | Unassigned vans: Assign-to-trust + Dismiss; fleet poll soft-removes routers/hubs and backfills trust_id/display_name. |
 | 25 Sep 2026 | 4 | API QA: report-config + report-runs smoke OK; PII audit clean; Viv UAT script in `docs/UAT.md`. Fixed sync_speed PromQL (was NaN). |
-| 25 Sep 2026 | 3 | Fleet status legend on UI; n8n cutover notes in `docs/n8n-report-config.md`. Demo trust removed. |
+| 25 Sep 2026 | 3 | Fleet status legend on UI; Demo trust removed. |
 | 25 Sep 2026 | 1/5 | Van inventory + handover draft; Activate-all-suggested; stop fixture auto-discover into DB; block `fixture.*`. |
 | 25 Sep 2026 | 3 | Fleet thresholds reset to scope defaults + admin Thresholds dialog on Fleet. |
 | 25 Sep 2026 | 1 | Activated 48 Grafana-discovered screening vans under suggested trusts; report-config now returns them. |
 | 25 Sep 2026 | 0/5 | PHASES “Waiting on” board; trust display names (NWA/TIC); recipient empty-state copy. |
+| 25 Sep 2026 | 1 | Replaced n8n with in-app Resend: `/api/reports/send`, Vercel daily/weekly crons, admin Send test report; docs in `docs/report-email.md`. |

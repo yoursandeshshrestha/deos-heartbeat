@@ -53,27 +53,32 @@
 | Stay signed in | Session valid within 12 hours |
 | Simulate expiry: DevTools → Application → Local Storage → set `deos.session.startedAt` to >12h ago → reload | Forced re-login |
 
-## 6. API smoke (engineering / n8n)
+## 6. API smoke (engineering)
 
-Use `REPORT_CONFIG_KEY` (server secret; never in the browser).
+### Report email (primary)
 
 ```bash
-# Active trusts + active vans + recipients only
+# Dry-run all eligible trusts
+curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"report_type":"daily","dry_run":true}' \
+  https://deos-heartbeat.vercel.app/api/reports/send | jq '{sent,failed,skipped}'
+```
+
+Or use **Reports → Send test report** while signed in as admin.
+
+### Optional compat APIs
+
+```bash
 curl -sS -H "Authorization: Bearer $REPORT_CONFIG_KEY" \
   https://deos-heartbeat.vercel.app/api/report-config | jq '.trusts | length'
-
-# Record a run
-curl -sS -X POST -H "Authorization: Bearer $REPORT_CONFIG_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"trust_id":"<uuid>","report_type":"daily","status":"success"}' \
-  https://deos-heartbeat.vercel.app/api/report-runs
 ```
 
 | Check | Expected |
 | --- | --- |
 | `GET /api/health` | `ok: true`, database + grafana reachable |
-| `GET /api/report-config` | Only `status=active` vans; no patient fields |
-| `POST /api/report-runs` | `201` with run id for success/failure |
+| `POST /api/reports/send` dry_run | `{ skipped/sent results }` without Resend call |
+| Admin Send test report | Email arrives for trust with recipients |
 
 ## 7. Sign-off
 
