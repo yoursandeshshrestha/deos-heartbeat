@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { requireAdmin } from './_lib/auth.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 import { rateLimit } from './_lib/rateLimit.js'
 import {
   createUser,
@@ -20,6 +20,7 @@ export const config = {
  * PATCH — update role / full_name (blocks removing the last admin)
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET' && req.method !== 'POST' && req.method !== 'PATCH') {
     return methodNotAllowed(res, ['GET', 'POST', 'PATCH'])
   }

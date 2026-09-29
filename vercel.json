@@ -4,16 +4,6 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "regions": ["lhr1"],
-  "crons": [
-    {
-      "path": "/api/reports/send?report_type=daily",
-      "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/reports/send?report_type=weekly",
-      "schedule": "30 5 * * 1"
-    }
-  ],
   "rewrites": [
     {
       "source": "/((?!api/).*)",

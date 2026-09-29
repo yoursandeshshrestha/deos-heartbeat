@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { optionalEnv } from './_lib/env.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 
 export const config = {
   regions: ['lhr1'],
@@ -11,6 +11,7 @@ export const config = {
  * If /api/health is unhealthy and UPTIME_WEBHOOK_URL is set, posts to Thrumble channel.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET' && req.method !== 'POST') {
     return methodNotAllowed(res, ['GET', 'POST'])
   }

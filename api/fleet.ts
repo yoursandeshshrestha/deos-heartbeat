@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { buildFleetPayload } from './_lib/fleet/build.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 
 export const config = {
   regions: ['lhr1'],
@@ -12,6 +12,7 @@ export const config = {
  * Cached 30s; on Grafana failure returns last good payload with stale: true.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }

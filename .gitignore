@@ -15,6 +15,7 @@ dist
 dist-ssr
 *.local
 .vercel
+supabase/functions/api/index.ts
 
 # Editor directories and files
 .vscode/*

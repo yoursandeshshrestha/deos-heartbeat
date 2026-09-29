@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { grafana, reportEmail, reportConfigKey, supabase } from './_lib/env.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 import { getServiceClient } from './_lib/supabase.js'
 
 export const config = {
@@ -65,6 +65,7 @@ async function checkGrafana(): Promise<{
  * Uptime / readiness: DB required; Grafana checked when token is configured.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }

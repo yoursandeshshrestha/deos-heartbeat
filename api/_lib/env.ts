@@ -1,7 +1,16 @@
 /** Server-only env. Never expose these via VITE_*. */
 
+function readEnv(name: string): string | undefined {
+  const fromNode = typeof process !== 'undefined' ? process.env?.[name] : undefined
+  if (fromNode) return fromNode
+  const deno = (globalThis as { Deno?: { env?: { get?: (key: string) => string | undefined } } })
+    .Deno
+  const fromDeno = deno?.env?.get?.(name)
+  return fromDeno || undefined
+}
+
 export function requireEnv(name: string): string {
-  const value = process.env[name]
+  const value = readEnv(name)
   if (!value) {
     throw new Error(`Missing required env: ${name}`)
   }
@@ -9,8 +18,7 @@ export function requireEnv(name: string): string {
 }
 
 export function optionalEnv(name: string): string | undefined {
-  const value = process.env[name]
-  return value || undefined
+  return readEnv(name)
 }
 
 export const grafana = {

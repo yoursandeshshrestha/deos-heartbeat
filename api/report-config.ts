@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { requireReportConfigKey } from './_lib/auth.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 import { rateLimit } from './_lib/rateLimit.js'
 import { filterReportConfigTrusts } from './_lib/reportConfig.js'
 import { getServiceClient } from './_lib/supabase.js'
@@ -38,6 +38,7 @@ export type ReportConfigTrust = {
  * Auth: Bearer / x-api-key = REPORT_CONFIG_KEY.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }

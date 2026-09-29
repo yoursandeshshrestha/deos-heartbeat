@@ -7,7 +7,7 @@ import {
   getCachedBriefing,
   setCachedBriefing,
 } from './_lib/fleet/briefing.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 import { rateLimit } from './_lib/rateLimit.js'
 
 export const config = {
@@ -20,6 +20,7 @@ export const config = {
  * Optional query: trust=Name (or all).
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }

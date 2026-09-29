@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 
 export const config = {
   regions: ['lhr1'],
@@ -10,6 +10,7 @@ export const config = {
  * Session auth + real payload in Phase 2+. Stub for route wiring.
  */
 export default function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }

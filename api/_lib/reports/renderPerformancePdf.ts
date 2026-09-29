@@ -31,15 +31,24 @@ const LINE = rgb(0.9, 0.9, 0.9)
 const BRAND = rgb(22 / 255, 22 / 255, 63 / 255)
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '../../..')
-const LOGO_PATH = join(ROOT, 'public/logo.png')
+const ASSET_ORIGIN = 'https://deos-heartbeat.vercel.app'
+
+async function readAsset(pathFromPublic: string): Promise<Uint8Array> {
+  try {
+    return readFileSync(join(ROOT, 'public', pathFromPublic))
+  } catch {
+    const response = await fetch(`${ASSET_ORIGIN}/${pathFromPublic}`)
+    if (!response.ok) {
+      throw new Error(`Missing PDF asset ${pathFromPublic}`)
+    }
+    return new Uint8Array(await response.arrayBuffer())
+  }
+}
 const FOOTER_BADGES = [
   'dcb0129.png',
   'cyber-essentials.png',
   'isoqar-ukas.png',
 ] as const
-const FONT_REGULAR = join(ROOT, 'public/fonts/IDGrotesk-Regular-BF652cb1b4787d7.ttf')
-const FONT_MEDIUM = join(ROOT, 'public/fonts/IDGrotesk-Medium-BF652cb1b4765e1.ttf')
-const FONT_SEMIBOLD = join(ROOT, 'public/fonts/IDGrotesk-Semibold-BF652cb1b467d9d.ttf')
 
 function formatStudies(value: number | null) {
   if (value == null) return '—'
@@ -397,14 +406,12 @@ export async function renderPerformancePdf(input: {
 
   const doc = await PDFDocument.create()
   doc.registerFontkit(fontkit)
-  const regular = await doc.embedFont(readFileSync(FONT_REGULAR))
-  const medium = await doc.embedFont(readFileSync(FONT_MEDIUM))
-  const semibold = await doc.embedFont(readFileSync(FONT_SEMIBOLD))
-  const logo = await doc.embedPng(readFileSync(LOGO_PATH))
+  const regular = await doc.embedFont(await readAsset('fonts/IDGrotesk-Regular-BF652cb1b4787d7.ttf'))
+  const medium = await doc.embedFont(await readAsset('fonts/IDGrotesk-Medium-BF652cb1b4765e1.ttf'))
+  const semibold = await doc.embedFont(await readAsset('fonts/IDGrotesk-Semibold-BF652cb1b467d9d.ttf'))
+  const logo = await doc.embedPng(await readAsset('logo.png'))
   const badges = await Promise.all(
-    FOOTER_BADGES.map((name) =>
-      doc.embedPng(readFileSync(join(ROOT, 'public/footer', name))),
-    ),
+    FOOTER_BADGES.map(async (name) => doc.embedPng(await readAsset(`footer/${name}`))),
   )
   const title =
     input.report.reportType === 'daily'

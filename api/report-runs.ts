@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { requireReportConfigKey } from './_lib/auth.js'
-import { json, methodNotAllowed } from './_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 import { rateLimit } from './_lib/rateLimit.js'
 import { getServiceClient } from './_lib/supabase.js'
 
@@ -31,6 +31,7 @@ function isRunStatus(value: unknown): value is 'success' | 'failure' {
  * Body: { trust_id, report_type: 'daily'|'weekly', status: 'success'|'failure', error?, run_at? }
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'POST') {
     return methodNotAllowed(res, ['POST'])
   }

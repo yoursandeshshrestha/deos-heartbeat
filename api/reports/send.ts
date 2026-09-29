@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { requireCronOrAdmin } from '../_lib/auth.js'
-import { json, methodNotAllowed } from '../_lib/http.js'
+import { json, methodNotAllowed, refuseVercelFunction } from '../_lib/http.js'
 import { rateLimit } from '../_lib/rateLimit.js'
 import type { ReportType } from '../_lib/reports/buildTrustReport.js'
 import { sendTrustReports } from '../_lib/reports/sendTrustReports.js'
@@ -46,6 +46,7 @@ function readParam(
  * Accepts GET (Vercel Cron) and POST (admin UI).
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (refuseVercelFunction(res)) return
   if (req.method !== 'GET' && req.method !== 'POST') {
     return methodNotAllowed(res, ['GET', 'POST'])
   }
