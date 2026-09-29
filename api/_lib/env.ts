@@ -32,3 +32,10 @@ export const supabase = {
 }
 
 export const reportConfigKey = () => optionalEnv('REPORT_CONFIG_KEY')
+
+export const reportEmail = {
+  resendApiKey: () => optionalEnv('RESEND_API_KEY'),
+  fromEmail: () =>
+    optionalEnv('REPORT_FROM_EMAIL') ?? 'no-reply@mail.thrumble.ai',
+  fromName: () => optionalEnv('REPORT_FROM_NAME') ?? 'Deos Heartbeat',
+}
