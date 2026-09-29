@@ -32,9 +32,12 @@ export type PerformanceVanInput = {
   syncSpeedMbps: number | null
 }
 
-function promRegex(values: string[]) {
+/** PromQL double-quoted regex. A literal dot must be `\\.` or Grafana returns 400. */
+export function promInstanceRegex(values: string[]) {
   return values
-    .map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .map((value) =>
+      value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\\/g, '\\\\'),
+    )
     .join('|')
 }
 
@@ -166,8 +169,8 @@ export async function loadReportPerformance(input: {
       input.vans.map((van) => van.modalityTarget || van.instance),
     ),
   ]
-  const instanceRe = promRegex(instances)
-  const modalityRe = promRegex(modalityInstances)
+  const instanceRe = promInstanceRegex(instances)
+  const modalityRe = promInstanceRegex(modalityInstances)
   const wantStudies = input.fields.studies || input.fields.week_total
   const wantSpeed = input.fields.transfer_speed
   const wantModality = input.fields.modality_window

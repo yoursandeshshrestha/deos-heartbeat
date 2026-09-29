@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { londonDaysEndingYesterday, londonToday } from './londonTime.js'
-import { bucketVanDays } from './performance.js'
+import { bucketVanDays, promInstanceRegex } from './performance.js'
 import { hasVisiblePdfFigure, parseReportPdfSettings } from './pdfSettings.js'
 import { renderPerformancePdf } from './renderPerformancePdf.js'
 import { reportPeriod, safeReportFilename } from './storeGeneratedReport.js'
@@ -24,6 +24,14 @@ describe('london report windows', () => {
   it('uses the London calendar date for the daily report', () => {
     const day = londonToday(new Date('2026-09-27T22:30:00Z'))
     expect(day.date).toBe('2026-09-27')
+  })
+})
+
+describe('promInstanceRegex', () => {
+  it('double-escapes dots so the PromQL string stays valid', () => {
+    expect(promInstanceRegex(['derby.van2-blue', 'london.van5'])).toBe(
+      'derby\\\\.van2-blue|london\\\\.van5',
+    )
   })
 })
 
