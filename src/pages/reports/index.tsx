@@ -37,6 +37,7 @@ import {
   type VanStatus,
 } from '@/lib/heartbeat-types'
 import { cn } from '@/lib/utils'
+import { serverFetch } from '@/lib/serverApi'
 import { supabase } from '@/lib/supabase'
 
 const VAN_STATUS_OPTIONS = [
@@ -450,7 +451,7 @@ function TrustDetail({
         toast.error('Not signed in')
         return
       }
-      const response = await fetch('/api/reports/send', {
+      const response = await serverFetch('/api/reports/send', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,

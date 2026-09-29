@@ -1,5 +1,6 @@
 import useSWR from 'swr'
 import { useAuth } from '@/lib/auth'
+import { serverFetch } from '@/lib/serverApi'
 import { cn } from '@/lib/utils'
 
 type BriefingResponse = {
@@ -8,7 +9,7 @@ type BriefingResponse = {
 }
 
 async function fetcher(url: string): Promise<BriefingResponse> {
-  const response = await fetch(url)
+  const response = await serverFetch(url)
   const payload = (await response.json()) as BriefingResponse & {
     error?: string
   }

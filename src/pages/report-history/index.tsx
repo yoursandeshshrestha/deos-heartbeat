@@ -12,6 +12,7 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination'
 import { Spinner } from '@/components/ui/spinner'
+import { serverFetch } from '@/lib/serverApi'
 import { supabase } from '@/lib/supabase'
 
 const PAGE_SIZE = 10
@@ -100,7 +101,7 @@ export function ReportHistoryPage() {
       const token = data.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      const response = await fetch(`/api/generated-reports?id=${encodeURIComponent(row.id)}`, {
+      const response = await serverFetch(`/api/generated-reports?id=${encodeURIComponent(row.id)}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       if (!response.ok) {

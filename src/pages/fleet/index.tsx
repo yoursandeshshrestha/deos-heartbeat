@@ -42,11 +42,12 @@ import {
 } from '@/components/ui/sheet'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
+import { serverFetch } from '@/lib/serverApi'
 import { supabase } from '@/lib/supabase'
 import type { FleetPayload, FleetStatus, FleetThresholds, FleetVan } from '@/lib/fleet-types'
 
 const fetcher = async (url: string): Promise<FleetPayload> => {
-  const response = await fetch(url)
+  const response = await serverFetch(url)
   if (!response.ok) {
     throw new Error(`Fleet API ${response.status}`)
   }

@@ -7,6 +7,7 @@ import { PageEmptyState } from '@/components/layout/PageEmptyState'
 import { PageLoading } from '@/components/layout/PageLoading'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { serverFetch } from '@/lib/serverApi'
 import { cn } from '@/lib/utils'
 import type { FleetPayload, FleetStatus, FleetVan } from '@/lib/fleet-types'
 
@@ -37,7 +38,7 @@ const STATUS_MARKER: Record<FleetStatus, string> = {
 }
 
 const fetcher = async (url: string): Promise<FleetPayload> => {
-  const response = await fetch(url)
+  const response = await serverFetch(url)
   if (!response.ok) throw new Error(`Fleet API ${response.status}`)
   return response.json()
 }

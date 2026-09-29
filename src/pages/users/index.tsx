@@ -34,6 +34,7 @@ import {
   type Role,
 } from '@/lib/roles'
 import { cn } from '@/lib/utils'
+import { serverFetch } from '@/lib/serverApi'
 import { supabase } from '@/lib/supabase'
 
 type ProfileUser = {
@@ -74,7 +75,7 @@ export function UsersPage() {
     setError(null)
     try {
       const headers = await authHeaders()
-      const response = await fetch('/api/users', { headers })
+      const response = await serverFetch('/api/users', { headers })
       const payload = (await response.json()) as {
         error?: string
         users?: ProfileUser[]
@@ -210,7 +211,7 @@ function UserRow({
     setSaving(true)
     try {
       const headers = await authHeaders()
-      const response = await fetch('/api/users', {
+      const response = await serverFetch('/api/users', {
         method: 'PATCH',
         headers,
         body: JSON.stringify({ id: user.id, role: nextRole }),
@@ -289,7 +290,7 @@ function AddUserDialog({
     setSubmitting(true)
     try {
       const headers = await authHeaders()
-      const response = await fetch('/api/users', {
+      const response = await serverFetch('/api/users', {
         method: 'POST',
         headers,
         body: JSON.stringify({
