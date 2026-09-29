@@ -143,7 +143,7 @@ export async function sendTrustReports(
 
   for (const trust of trusts) {
     const eligible = isTrustEligible(trust, reportType)
-    if (!eligible.ok) {
+    if (eligible.ok === false) {
       summary.skipped += 1
       summary.results.push({
         trust_id: trust.id,
