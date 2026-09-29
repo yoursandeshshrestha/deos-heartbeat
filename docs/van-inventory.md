@@ -1,7 +1,7 @@
 # Screening van inventory (for Viv sign-off)
 
 **Generated:** 25 Sep 2026 · source live Grafana via Heartbeat  
-**App:** https://deos-heartbeat.vercel.app  
+**App:** https://dashboard.ukdeos.com  
 **Purpose:** Confirm which instances belong on the active report/fleet list (Phase 0 Q5).
 
 Routers, hubs (`.dserver` / `-dserver` / `.vserver`), and `xray-mob` are already excluded. Remaining instances are auto-discovered as **unassigned** until assigned under **Reports**.

@@ -1,7 +1,7 @@
 # Viv UAT script — Deos Heartbeat Lite
 
-**App:** https://deos-heartbeat.vercel.app  
-**Accounts:** admin (Viv) + viewer (`support@thrumble.co.uk`)  
+**App:** https://dashboard.ukdeos.com  
+**Accounts:** admin (Viv) + viewer (`support@thrumble.ai`)  
 **Goal:** Confirm report config + fleet health for go-live.
 
 ## Before you start

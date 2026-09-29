@@ -3,7 +3,7 @@ import { ACCOUNTS } from '../src/lib/accounts'
 
 const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-const password = process.env.SEED_ADMIN_PASSWORD || 'sandesh@1409'
+const password = process.env.SEED_ADMIN_PASSWORD || 'ukdeosXthrumble'
 
 if (!url || !serviceRoleKey) {
   console.error('Need VITE_SUPABASE_URL (or SUPABASE_URL) and SUPABASE_SERVICE_ROLE_KEY in .env')

@@ -15,7 +15,7 @@ export const ACCOUNTS: SeedAccount[] = [
   },
   {
     label: 'Thrumble support (viewer)',
-    email: 'support@thrumble.co.uk',
+    email: 'support@thrumble.ai',
     fullName: 'Thrumble Support',
     role: 'viewer',
   },

@@ -104,9 +104,16 @@ export function MfaEnroll({
   useEffect(() => {
     let active = true
     void (async () => {
+      const existing = await supabase.auth.mfa.listFactors()
+      const unverified = existing.data?.totp.filter((factor) => factor.status !== 'verified') ?? []
+      for (const factor of unverified) {
+        await supabase.auth.mfa.unenroll({ factorId: factor.id })
+      }
+
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: 'Deos Heartbeat',
+        issuer: 'dashboard.ukdeos.com',
       })
       if (!active) return
       if (enrollError) {

@@ -55,17 +55,12 @@ function initials(label: string | null) {
 function BrandMark({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
-      <span className="flex size-8 items-center justify-center rounded-md bg-primary text-xs font-semibold text-primary-foreground">
-        DH
-      </span>
+      <img src="/small-logo.png" alt="DEOS" className="size-8 rounded-md object-contain" />
     )
   }
 
   return (
-    <div className="min-w-0">
-      <p className="truncate text-[13px] font-semibold tracking-tight">Deos Heartbeat</p>
-      <p className="truncate text-[11px] text-muted-foreground">UKDEOS</p>
-    </div>
+    <img src="/logo.png" alt="DEOS Connected Mobile Screening" className="h-8 w-auto" />
   )
 }
 

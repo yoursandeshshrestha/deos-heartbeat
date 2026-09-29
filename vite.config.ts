@@ -328,7 +328,7 @@ function localApiPlugin(env: Record<string, string>): Plugin {
 export default defineConfig(({ command }) => {
   const env = loadEnv('', process.cwd(), '')
   const devLogin = command === 'serve'
-  const devPassword = env.SEED_ADMIN_PASSWORD || 'sandesh@1409'
+  const devPassword = env.SEED_ADMIN_PASSWORD || 'ukdeosXthrumble'
   const devLogins = devLogin
     ? ACCOUNTS.map((account) => ({ label: account.label, email: account.email }))
     : []

@@ -116,7 +116,7 @@ Owners (from scope): **Guna** backend/integration · **Jo** client liaison & UAT
 - [x] Soft-delete / pause flows in UI (trust deactivate, van status, recipient active=false)
 - [x] Auto-discovered unassigned vans surfaced to admin (list section; assign / dismiss flow)
 - [x] Security headers (CSP, HSTS in `vercel.json`); rate limit `/api/report-config` + `/api/report-runs`
-- [x] Named Thrumble support account (never share Viv’s login) — `support@thrumble.co.uk` viewer in seed
+- [x] Named Thrumble support account (never share Viv’s login) — `support@thrumble.ai` viewer in seed
 
 ---
 
