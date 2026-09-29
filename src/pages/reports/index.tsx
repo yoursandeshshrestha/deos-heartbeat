@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { PageEmptyState } from '@/components/layout/PageEmptyState'
@@ -26,15 +27,6 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
-import { dataTableCellClass, dataTableHeadClass } from '@/components/ui/data-table-utils'
 import { runMutation, useReportConfig } from '@/hooks/useReportConfig'
 import { useAuth } from '@/lib/auth'
 import {
@@ -54,6 +46,12 @@ const VAN_STATUS_OPTIONS = [
   { label: 'Removed', value: 'removed' },
 ]
 
+const overviewCardClass =
+  'overflow-hidden bg-white shadow-xs ring-1 ring-border/70 dark:bg-card'
+
+const overviewHeaderClass =
+  'flex items-center justify-between gap-2 bg-muted/50 px-4 py-3 text-base font-medium text-muted-foreground'
+
 function statusBadge(status: VanStatus) {
   if (status === 'active') return <Badge variant="success">Active</Badge>
   if (status === 'paused') return <Badge variant="warning">Paused</Badge>
@@ -61,11 +59,75 @@ function statusBadge(status: VanStatus) {
   return <Badge variant="secondary">Removed</Badge>
 }
 
+type PdfSettings = {
+  studies: boolean
+  transfer_speed: boolean
+  modality_window: boolean
+  week_total: boolean
+}
+
+const DEFAULT_PDF_SETTINGS: PdfSettings = {
+  studies: true,
+  transfer_speed: true,
+  modality_window: true,
+  week_total: true,
+}
+
+const PDF_FIELDS: Array<{ key: keyof PdfSettings; label: string; hint: string }> = [
+  {
+    key: 'studies',
+    label: 'Total studies transferred',
+    hint: 'Daily cards and the weekly table',
+  },
+  {
+    key: 'transfer_speed',
+    label: 'Average transfer speed',
+    hint: 'Daily cards and the weekly table',
+  },
+  {
+    key: 'modality_window',
+    label: 'Modality connection times',
+    hint: 'Start and end for each day',
+  },
+  {
+    key: 'week_total',
+    label: 'Weekly studies total',
+    hint: 'Shown on the weekly PDF only',
+  },
+]
+
+function readPdfSettings(value: unknown): PdfSettings {
+  const source =
+    value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
+  const settings = { ...DEFAULT_PDF_SETTINGS }
+  for (const field of PDF_FIELDS) {
+    if (typeof source[field.key] === 'boolean') settings[field.key] = source[field.key]
+  }
+  return settings
+}
+
 export function ReportsPage() {
   const { role } = useAuth()
   const canWrite = role === 'admin'
   const { trusts, unassigned, loading, error, reload } = useReportConfig()
+  const [pdfSettings, setPdfSettings] = useState<PdfSettings>(DEFAULT_PDF_SETTINGS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    void supabase
+      .from('settings')
+      .select('value')
+      .eq('key', 'report_pdf')
+      .maybeSingle()
+      .then(({ data, error: loadError }) => {
+        if (cancelled || loadError || !data) return
+        setPdfSettings(readPdfSettings(data.value))
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [])
   const [addTrustOpen, setAddTrustOpen] = useState(false)
   const [addVanOpen, setAddVanOpen] = useState(false)
   const [addRecipientOpen, setAddRecipientOpen] = useState(false)
@@ -98,13 +160,15 @@ export function ReportsPage() {
 
   return (
     <div className="content-section content-section--full p-4 sm:p-6 lg:p-10">
-      <div className="content-section__header flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-base font-normal">Reports</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Trusts, vans, daily/weekly toggles, and email recipients.
-          </p>
-        </div>
+      <div className="content-section__header flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">
+          Configure trusts, vans, and recipients. Daily and weekly emails include a
+          performance PDF. Stored copies are on{' '}
+          <Link to="/report-history" className="text-foreground underline underline-offset-2">
+            Report history
+          </Link>
+          .
+        </p>
         {canWrite ? (
           <Button size="sm" onClick={() => setAddTrustOpen(true)}>
             <Plus className="size-4" />
@@ -113,7 +177,8 @@ export function ReportsPage() {
         ) : null}
       </div>
 
-      <div className="content-section__content pt-6">
+      <div className="content-section__content space-y-6 pt-6">
+        <PdfContentsCard canWrite={canWrite} settings={pdfSettings} onChange={setPdfSettings} />
         {!trusts.length ? (
           <PageEmptyState
             title="No trusts yet"
@@ -131,12 +196,19 @@ export function ReportsPage() {
             }
           />
         ) : (
-          <div className="grid gap-8 lg:grid-cols-[220px_minmax(0,1fr)]">
-            <TrustList
-              trusts={trusts}
-              selectedId={selected?.id ?? null}
-              onSelect={setSelectedId}
-            />
+          <div className="grid gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+            <section className={overviewCardClass}>
+              <div className={overviewHeaderClass}>
+                <span>Trusts</span>
+                <span className="text-sm tabular-nums">{trusts.length}</span>
+              </div>
+              <TrustList
+                trusts={trusts}
+                selectedId={selected?.id ?? null}
+                onSelect={setSelectedId}
+              />
+            </section>
+
             {selected ? (
               <TrustDetail
                 trust={selected}
@@ -150,117 +222,111 @@ export function ReportsPage() {
         )}
 
         {unassigned.length > 0 ? (
-          <section className="mt-10">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-sm font-medium">Unassigned vans</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Auto-discovered from Grafana. Assign to a trust to include in reports.
-                </p>
+          <section className={overviewCardClass}>
+            <div className={overviewHeaderClass}>
+              <span>Unassigned vans</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {unassigned.length}
+                </span>
+                {canWrite ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      void (async () => {
+                        const slugToId = new Map(
+                          trusts.map((trust) => [trust.slug, trust.id] as const),
+                        )
+                        let ok = 0
+                        let skipped = 0
+                        for (const van of unassigned) {
+                          const slug = van.instance.split('.')[0] ?? ''
+                          const trustId = van.trust_id ?? slugToId.get(slug)
+                          if (!trustId) {
+                            skipped += 1
+                            continue
+                          }
+                          const { error } = await supabase
+                            .from('vans')
+                            .update({
+                              trust_id: trustId,
+                              status: 'active',
+                              daily_enabled: true,
+                              weekly_enabled: true,
+                            })
+                            .eq('id', van.id)
+                          if (error) {
+                            toast.error(`${van.instance}: ${error.message}`)
+                            await reload()
+                            return
+                          }
+                          ok += 1
+                        }
+                        toast.success(
+                          `Activated ${ok} van${ok === 1 ? '' : 's'}${
+                            skipped ? ` (${skipped} need a trust first)` : ''
+                          }`,
+                        )
+                        await reload()
+                      })()
+                    }}
+                  >
+                    Activate all suggested
+                  </Button>
+                ) : null}
               </div>
-              {canWrite ? (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    void (async () => {
-                      const slugToId = new Map(
-                        trusts.map((trust) => [trust.slug, trust.id] as const),
-                      )
-                      let ok = 0
-                      let skipped = 0
-                      for (const van of unassigned) {
-                        const slug = van.instance.split('.')[0] ?? ''
-                        const trustId = van.trust_id ?? slugToId.get(slug)
-                        if (!trustId) {
-                          skipped += 1
-                          continue
-                        }
-                        const { error } = await supabase
-                          .from('vans')
-                          .update({
-                            trust_id: trustId,
-                            status: 'active',
-                            daily_enabled: true,
-                            weekly_enabled: true,
-                          })
-                          .eq('id', van.id)
-                        if (error) {
-                          toast.error(`${van.instance}: ${error.message}`)
-                          await reload()
-                          return
-                        }
-                        ok += 1
-                      }
-                      toast.success(
-                        `Activated ${ok} van${ok === 1 ? '' : 's'}${
-                          skipped ? ` (${skipped} need a trust first)` : ''
-                        }`,
-                      )
-                      await reload()
-                    })()
-                  }}
-                >
-                  Activate all suggested
-                </Button>
-              ) : null}
             </div>
-            <div className="mt-4 overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className={dataTableHeadClass}>Instance</TableHead>
-                    <TableHead className={dataTableHeadClass}>Display name</TableHead>
-                    <TableHead className={dataTableHeadClass}>Status</TableHead>
-                    {canWrite ? (
-                      <TableHead className={dataTableHeadClass} />
-                    ) : null}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {unassigned.map((van) => (
-                    <TableRow key={van.id}>
-                      <TableCell className={cn(dataTableCellClass, 'font-mono text-xs')}>
+            <div className="px-4 pb-1 pt-3.5">
+              <p className="mb-3 text-sm text-muted-foreground">
+                Auto-discovered from Grafana. Assign to a trust to include in reports.
+              </p>
+              <div className="-mx-4 divide-y divide-border">
+                {unassigned.map((van) => (
+                  <div
+                    key={van.id}
+                    className="flex flex-wrap items-center gap-3 px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-medium">
+                        {van.display_name}
+                      </div>
+                      <div className="truncate font-mono text-xs text-muted-foreground">
                         {van.instance}
-                      </TableCell>
-                      <TableCell className={dataTableCellClass}>{van.display_name}</TableCell>
-                      <TableCell className={dataTableCellClass}>
-                        {statusBadge(van.status)}
-                      </TableCell>
-                      {canWrite ? (
-                        <TableCell className={dataTableCellClass}>
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setAssignVan(van)}
-                            >
-                              Assign
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => {
-                                void runMutation(
-                                  'Van dismissed',
-                                  () =>
-                                    supabase
-                                      .from('vans')
-                                      .update({ status: 'removed' })
-                                      .eq('id', van.id),
-                                  reload,
-                                )
-                              }}
-                            >
-                              Dismiss
-                            </Button>
-                          </div>
-                        </TableCell>
-                      ) : null}
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                      </div>
+                    </div>
+                    {statusBadge(van.status)}
+                    {canWrite ? (
+                      <div className="flex shrink-0 gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setAssignVan(van)}
+                        >
+                          Assign
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            void runMutation(
+                              'Van dismissed',
+                              () =>
+                                supabase
+                                  .from('vans')
+                                  .update({ status: 'removed' })
+                                  .eq('id', van.id),
+                              reload,
+                            )
+                          }}
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
         ) : null}
@@ -318,23 +384,34 @@ function TrustList({
   onSelect: (id: string) => void
 }) {
   return (
-    <nav className="flex flex-col gap-1">
+    <nav className="divide-y divide-border">
       {trusts.map((trust) => {
         const active = trust.id === selectedId
+        const vanCount = trust.vans.filter((van) => van.status !== 'removed').length
         return (
           <button
             key={trust.id}
             type="button"
             onClick={() => onSelect(trust.id)}
             className={cn(
-              'flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm transition-colors',
-              active
-                ? 'bg-sidebar-accent font-medium text-primary'
-                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+              'flex w-full flex-col gap-1 px-4 py-3 text-left transition-colors',
+              active ? 'bg-[#f3f3f3] dark:bg-muted' : 'hover:bg-muted/50',
             )}
           >
-            <span className="truncate">{trust.name}</span>
-            {!trust.active ? <Badge variant="secondary">Off</Badge> : null}
+            <div className="flex items-center justify-between gap-2">
+              <span
+                className={cn(
+                  'truncate text-sm',
+                  active ? 'font-medium text-foreground' : 'text-foreground',
+                )}
+              >
+                {trust.name}
+              </span>
+              {!trust.active ? <Badge variant="secondary">Off</Badge> : null}
+            </div>
+            <div className="text-xs tabular-nums text-muted-foreground">
+              {vanCount} van{vanCount === 1 ? '' : 's'}
+            </div>
           </button>
         )
       })}
@@ -356,75 +433,145 @@ function TrustDetail({
   onAddRecipient: () => void
 }) {
   const vans = trust.vans.filter((van) => van.status !== 'removed')
-  const recipients = trust.recipients.filter((recipient) => recipient.active)
-  const removedRecipients = trust.recipients.filter((recipient) => !recipient.active)
+  const recipients = [...trust.recipients].sort((a, b) => {
+    if (a.active !== b.active) return a.active ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+  const activeRecipientCount = recipients.filter((r) => r.active).length
+  const [sendingTest, setSendingTest] = useState(false)
+
+  async function sendTestReport() {
+    setSendingTest(true)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) {
+        toast.error('Not signed in')
+        return
+      }
+      const response = await fetch('/api/reports/send', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          report_type: 'daily',
+          trust_id: trust.id,
+        }),
+      })
+      const payload = (await response.json()) as {
+        error?: string
+        sent?: number
+        failed?: number
+        skipped?: number
+        results?: Array<{ status: string; reason?: string }>
+      }
+      if (!response.ok) {
+        toast.error(payload.error ?? 'Send failed')
+        return
+      }
+      if ((payload.sent ?? 0) > 0) {
+        toast.success(
+          `Test report sent to ${activeRecipientCount} recipient${activeRecipientCount === 1 ? '' : 's'}`,
+        )
+        return
+      }
+      const reason = payload.results?.[0]?.reason ?? 'skipped'
+      if ((payload.failed ?? 0) > 0) {
+        toast.error(`Send failed: ${reason}`)
+        return
+      }
+      toast.message(`Report not sent: ${reason}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Send failed')
+    } finally {
+      setSendingTest(false)
+    }
+  }
 
   return (
-    <div className="min-w-0 space-y-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-sm font-medium">{trust.name}</h2>
-          <p className="mt-0.5 font-mono text-xs text-muted-foreground">{trust.slug}</p>
+    <div className="min-w-0 space-y-6">
+      <section className={overviewCardClass}>
+        <div className={overviewHeaderClass}>
+          <span className="truncate text-foreground">{trust.name}</span>
+          {canWrite ? (
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                loading={sendingTest}
+                disabled={!activeRecipientCount}
+                onClick={() => {
+                  void sendTestReport()
+                }}
+              >
+                Send test report
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void runMutation(
+                    trust.active ? 'Trust deactivated' : 'Trust activated',
+                    () =>
+                      supabase
+                        .from('trusts')
+                        .update({ active: !trust.active })
+                        .eq('id', trust.id),
+                    onReload,
+                  )
+                }}
+              >
+                {trust.active ? 'Deactivate' : 'Activate'}
+              </Button>
+            </div>
+          ) : null}
         </div>
-        {canWrite ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
+        <div className="grid gap-px bg-border/70 sm:grid-cols-2">
+          <ToggleRow
+            label="Daily reports"
+            checked={trust.daily_enabled}
+            disabled={!canWrite}
+            onChange={(checked) => {
               void runMutation(
-                trust.active ? 'Trust deactivated' : 'Trust activated',
+                'Daily toggle updated',
                 () =>
                   supabase
                     .from('trusts')
-                    .update({ active: !trust.active })
+                    .update({ daily_enabled: checked })
                     .eq('id', trust.id),
                 onReload,
               )
             }}
-          >
-            {trust.active ? 'Deactivate trust' : 'Activate trust'}
-          </Button>
-        ) : null}
-      </div>
+          />
+          <ToggleRow
+            label="Weekly reports"
+            checked={trust.weekly_enabled}
+            disabled={!canWrite}
+            onChange={(checked) => {
+              void runMutation(
+                'Weekly toggle updated',
+                () =>
+                  supabase
+                    .from('trusts')
+                    .update({ weekly_enabled: checked })
+                    .eq('id', trust.id),
+                onReload,
+              )
+            }}
+          />
+        </div>
+      </section>
 
-      <div className="flex flex-wrap gap-6">
-        <ToggleRow
-          label="Daily reports"
-          checked={trust.daily_enabled}
-          disabled={!canWrite}
-          onChange={(checked) => {
-            void runMutation(
-              'Daily toggle updated',
-              () =>
-                supabase
-                  .from('trusts')
-                  .update({ daily_enabled: checked })
-                  .eq('id', trust.id),
-              onReload,
-            )
-          }}
-        />
-        <ToggleRow
-          label="Weekly reports"
-          checked={trust.weekly_enabled}
-          disabled={!canWrite}
-          onChange={(checked) => {
-            void runMutation(
-              'Weekly toggle updated',
-              () =>
-                supabase
-                  .from('trusts')
-                  .update({ weekly_enabled: checked })
-                  .eq('id', trust.id),
-              onReload,
-            )
-          }}
-        />
-      </div>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-medium">Vans</h3>
+      <section className={overviewCardClass}>
+        <div className={overviewHeaderClass}>
+          <span>
+            Vans{' '}
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {vans.length}
+            </span>
+          </span>
           {canWrite ? (
             <Button size="sm" variant="outline" onClick={onAddVan}>
               <Plus className="size-4" />
@@ -433,20 +580,20 @@ function TrustDetail({
           ) : null}
         </div>
         {!vans.length ? (
-          <p className="text-sm text-muted-foreground">No vans for this trust.</p>
+          <p className="px-4 py-6 text-sm text-muted-foreground">
+            No vans for this trust.
+          </p>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className={dataTableHeadClass}>Name</TableHead>
-                  <TableHead className={dataTableHeadClass}>Instance</TableHead>
-                  <TableHead className={dataTableHeadClass}>Daily</TableHead>
-                  <TableHead className={dataTableHeadClass}>Weekly</TableHead>
-                  <TableHead className={dataTableHeadClass}>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <div className="min-w-[640px] px-4 pb-1 pt-3.5">
+              <header className="grid grid-cols-[minmax(120px,1.2fr)_minmax(140px,1.4fr)_70px_70px_140px] gap-3 text-sm font-medium text-muted-foreground">
+                <span>Name</span>
+                <span>Instance</span>
+                <span>Daily</span>
+                <span>Weekly</span>
+                <span>Status</span>
+              </header>
+              <div className="-mx-4 mt-1 divide-y divide-border">
                 {vans.map((van) => (
                   <VanRow
                     key={van.id}
@@ -455,15 +602,20 @@ function TrustDetail({
                     onReload={onReload}
                   />
                 ))}
-              </TableBody>
-            </Table>
+              </div>
+            </div>
           </div>
         )}
       </section>
 
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="text-sm font-medium">Recipients</h3>
+      <section className={overviewCardClass}>
+        <div className={overviewHeaderClass}>
+          <span>
+            Recipients{' '}
+            <span className="text-sm tabular-nums text-muted-foreground">
+              {activeRecipientCount}/{recipients.length}
+            </span>
+          </span>
           {canWrite ? (
             <Button size="sm" variant="outline" onClick={onAddRecipient}>
               <Plus className="size-4" />
@@ -472,38 +624,21 @@ function TrustDetail({
           ) : null}
         </div>
         {!recipients.length ? (
-          <p className="text-sm text-muted-foreground">
-            No active recipients. Add emails so daily/weekly reports have somewhere to go.
+          <p className="px-4 py-6 text-sm text-muted-foreground">
+            No recipients yet. Add emails so daily/weekly reports have somewhere to go.
           </p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className={dataTableHeadClass}>Name</TableHead>
-                  <TableHead className={dataTableHeadClass}>Email</TableHead>
-                  <TableHead className={dataTableHeadClass} />
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {recipients.map((recipient) => (
-                  <RecipientRow
-                    key={recipient.id}
-                    recipient={recipient}
-                    canWrite={canWrite}
-                    onReload={onReload}
-                  />
-                ))}
-              </TableBody>
-            </Table>
+          <div className="divide-y divide-border">
+            {recipients.map((recipient) => (
+              <RecipientRow
+                key={recipient.id}
+                recipient={recipient}
+                canWrite={canWrite}
+                onReload={onReload}
+              />
+            ))}
           </div>
         )}
-        {removedRecipients.length > 0 ? (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {removedRecipients.length} inactive recipient
-            {removedRecipients.length === 1 ? '' : 's'} hidden (soft-deleted).
-          </p>
-        ) : null}
       </section>
     </div>
   )
@@ -519,12 +654,12 @@ function VanRow({
   onReload: () => Promise<void>
 }) {
   return (
-    <TableRow>
-      <TableCell className={dataTableCellClass}>{van.display_name}</TableCell>
-      <TableCell className={cn(dataTableCellClass, 'font-mono text-xs')}>
+    <div className="grid grid-cols-[minmax(120px,1.2fr)_minmax(140px,1.4fr)_70px_70px_140px] items-center gap-3 px-4 py-3 text-sm">
+      <span className="truncate font-medium">{van.display_name}</span>
+      <span className="truncate font-mono text-xs text-muted-foreground">
         {van.instance}
-      </TableCell>
-      <TableCell className={dataTableCellClass}>
+      </span>
+      <div>
         <Switch
           size="sm"
           checked={van.daily_enabled}
@@ -541,8 +676,8 @@ function VanRow({
             )
           }}
         />
-      </TableCell>
-      <TableCell className={dataTableCellClass}>
+      </div>
+      <div>
         <Switch
           size="sm"
           checked={van.weekly_enabled}
@@ -559,47 +694,45 @@ function VanRow({
             )
           }}
         />
-      </TableCell>
-      <TableCell className={dataTableCellClass}>
+      </div>
+      <div>
         {canWrite ? (
-          <div className="w-[140px]">
-            <Combobox
-              data={VAN_STATUS_OPTIONS}
-              type="status"
-              value={van.status}
-              onValueChange={(value) => {
-                void runMutation(
-                  'Van status updated',
-                  () =>
-                    supabase
-                      .from('vans')
-                      .update({ status: value as VanStatus })
-                      .eq('id', van.id),
-                  onReload,
-                )
-              }}
-            >
-              <ComboboxTrigger className="w-full" />
-              <ComboboxContent>
-                <ComboboxInput />
-                <ComboboxList>
-                  <ComboboxEmpty>No status found</ComboboxEmpty>
-                  <ComboboxGroup>
-                    {VAN_STATUS_OPTIONS.map((option) => (
-                      <ComboboxItem key={option.value} value={option.value}>
-                        {option.label}
-                      </ComboboxItem>
-                    ))}
-                  </ComboboxGroup>
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
+          <Combobox
+            data={VAN_STATUS_OPTIONS}
+            type="status"
+            value={van.status}
+            onValueChange={(value) => {
+              void runMutation(
+                'Van status updated',
+                () =>
+                  supabase
+                    .from('vans')
+                    .update({ status: value as VanStatus })
+                    .eq('id', van.id),
+                onReload,
+              )
+            }}
+          >
+            <ComboboxTrigger className="w-full" />
+            <ComboboxContent>
+              <ComboboxInput />
+              <ComboboxList>
+                <ComboboxEmpty>No status found</ComboboxEmpty>
+                <ComboboxGroup>
+                  {VAN_STATUS_OPTIONS.map((option) => (
+                    <ComboboxItem key={option.value} value={option.value}>
+                      {option.label}
+                    </ComboboxItem>
+                  ))}
+                </ComboboxGroup>
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
         ) : (
           statusBadge(van.status)
         )}
-      </TableCell>
-    </TableRow>
+      </div>
+    </div>
   )
 }
 
@@ -613,53 +746,114 @@ function RecipientRow({
   onReload: () => Promise<void>
 }) {
   return (
-    <TableRow>
-      <TableCell className={dataTableCellClass}>{recipient.name}</TableCell>
-      <TableCell className={dataTableCellClass}>{recipient.email}</TableCell>
-      <TableCell className={cn(dataTableCellClass, 'text-right')}>
-        {canWrite ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              void runMutation(
-                'Recipient deactivated',
-                () =>
-                  supabase
-                    .from('recipients')
-                    .update({ active: false })
-                    .eq('id', recipient.id),
-                onReload,
-              )
+    <div className="flex items-center gap-3 px-4 py-3">
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-sm font-medium">{recipient.name}</div>
+        <div className="truncate text-sm text-muted-foreground">{recipient.email}</div>
+      </div>
+      <Switch
+        size="sm"
+        checked={recipient.active}
+        disabled={!canWrite}
+        onCheckedChange={(checked) => {
+          void runMutation(
+            checked ? 'Recipient activated' : 'Recipient deactivated',
+            () =>
+              supabase
+                .from('recipients')
+                .update({ active: checked })
+                .eq('id', recipient.id),
+            onReload,
+          )
+        }}
+      />
+    </div>
+  )
+}
+
+function PdfContentsCard({
+  canWrite,
+  settings,
+  onChange,
+}: {
+  canWrite: boolean
+  settings: PdfSettings
+  onChange: (settings: PdfSettings) => void
+}) {
+  async function toggle(key: keyof PdfSettings, checked: boolean) {
+    const next = { ...settings, [key]: checked }
+    const anyOn = PDF_FIELDS.some((field) => next[field.key])
+    if (!anyOn) {
+      toast.message('Keep at least one figure in the PDF')
+      return
+    }
+    const previous = settings
+    onChange(next)
+    const { error } = await supabase.from('settings').upsert(
+      {
+        key: 'report_pdf',
+        value: next,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'key' },
+    )
+    if (error) {
+      onChange(previous)
+      toast.error(error.message)
+      return
+    }
+    toast.success('PDF contents updated')
+  }
+
+  return (
+    <section className={overviewCardClass}>
+      <div className={overviewHeaderClass}>
+        <span>PDF contents</span>
+      </div>
+      <p className="px-4 pt-3 text-sm text-muted-foreground">
+        Choose which figures go into the daily and weekly PDFs. This applies to
+        every trust.
+      </p>
+      <div className="grid gap-px bg-border/70 sm:grid-cols-2">
+        {PDF_FIELDS.map((field) => (
+          <ToggleRow
+            key={field.key}
+            label={field.label}
+            hint={field.hint}
+            checked={settings[field.key]}
+            disabled={!canWrite}
+            onChange={(checked) => {
+              void toggle(field.key, checked)
             }}
-          >
-            Remove
-          </Button>
-        ) : null}
-      </TableCell>
-    </TableRow>
+          />
+        ))}
+      </div>
+    </section>
   )
 }
 
 function ToggleRow({
   label,
+  hint,
   checked,
   disabled,
   onChange,
 }: {
   label: string
+  hint?: string
   checked: boolean
   disabled: boolean
   onChange: (checked: boolean) => void
 }) {
   return (
-    <label className="flex items-center gap-3 text-sm">
-      <Switch
-        checked={checked}
-        disabled={disabled}
-        onCheckedChange={onChange}
-      />
-      <span>{label}</span>
+    <label className="flex items-center justify-between gap-3 bg-white px-4 py-3.5 text-sm dark:bg-card">
+      <span>
+        <span className="text-muted-foreground">{label}</span>
+        {hint ? (
+          <span className="mt-0.5 block text-xs text-muted-foreground/80">{hint}</span>
+        ) : null}
+      </span>
+      <Switch checked={checked} disabled={disabled} onCheckedChange={onChange} />
     </label>
   )
 }
