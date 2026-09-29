@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -52,7 +53,7 @@ export function MfaChallenge({ onVerified }: { onVerified: () => void }) {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-6 py-10">
+    <AuthLayout>
       <div className="surface-card w-full max-w-sm p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           UKDEOS
@@ -80,7 +81,7 @@ export function MfaChallenge({ onVerified }: { onVerified: () => void }) {
           </Button>
         </form>
       </div>
-    </div>
+    </AuthLayout>
   )
 }
 
@@ -149,7 +150,7 @@ export function MfaEnroll({
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-background px-6 py-10">
+    <AuthLayout>
       <div className="surface-card w-full max-w-sm p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           UKDEOS
@@ -209,6 +210,6 @@ export function MfaEnroll({
           </div>
         )}
       </div>
-    </div>
+    </AuthLayout>
   )
 }

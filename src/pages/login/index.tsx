@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
+import { AuthLayout } from '@/components/auth/AuthLayout'
 import { PageLoading } from '@/components/layout/PageLoading'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -39,7 +40,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="relative flex min-h-dvh items-center justify-center bg-background px-6 py-10">
+    <AuthLayout>
       <div className="surface-card w-full max-w-sm p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
           UKDEOS
@@ -95,6 +96,6 @@ export function LoginPage() {
           ))}
         </div>
       ) : null}
-    </div>
+    </AuthLayout>
   )
 }
