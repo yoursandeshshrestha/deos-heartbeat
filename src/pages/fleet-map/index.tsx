@@ -115,8 +115,7 @@ export function FleetMapPage() {
 
   const vans = data?.vans ?? []
   const located = useMemo(() => {
-    return vans.filter((van) => {
-      if (!hasCoords(van)) return false
+    return vans.filter(hasCoords).filter((van) => {
       if (!showLastKnown && van.gps_source === 'last_known') return false
       return true
     })

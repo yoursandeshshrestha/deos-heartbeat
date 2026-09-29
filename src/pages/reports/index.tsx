@@ -101,7 +101,8 @@ function readPdfSettings(value: unknown): PdfSettings {
     value && typeof value === 'object' ? (value as Record<string, unknown>) : {}
   const settings = { ...DEFAULT_PDF_SETTINGS }
   for (const field of PDF_FIELDS) {
-    if (typeof source[field.key] === 'boolean') settings[field.key] = source[field.key]
+    const next = source[field.key]
+    if (typeof next === 'boolean') settings[field.key] = next
   }
   return settings
 }
