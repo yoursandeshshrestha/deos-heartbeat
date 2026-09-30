@@ -10,6 +10,7 @@ import {
   type PDFPage,
 } from 'pdf-lib'
 import type { ReportType, TrustReport } from './buildTrustReport.js'
+import { dualClock } from './londonTime.js'
 import type { ReportPdfSettings } from './pdfSettings.js'
 import { hasVisiblePdfFigure } from './pdfSettings.js'
 import {
@@ -62,7 +63,11 @@ function formatSpeed(value: number | null) {
 
 function modalityLines(day: DayPerformance) {
   if (!day.modalityStart || !day.modalityEnd) return ['Not available']
-  return [`Start time    ${day.modalityStart}`, `End time      ${day.modalityEnd}`]
+  return [
+    `Start  ${dualClock(day.modalityStart)}`,
+    `End    ${dualClock(day.modalityEnd)}`,
+    'GMT+01:00',
+  ]
 }
 
 function drawCard(
@@ -189,7 +194,7 @@ function drawCards(
       card.lines.forEach((line, lineIndex) => {
         page.drawText(line, {
           x: x + 12,
-          y: y + 46 - lineIndex * 16,
+          y: y + 52 - lineIndex * 16,
           size: 11,
           font: lineIndex === 0 ? medium : regular,
           color: INK,
@@ -244,8 +249,11 @@ function weeklyColumns(fields: ReportPdfSettings): Column[] {
       align: 'left',
     })
   }
-  const width = (PAGE_WIDTH - MARGIN * 2) / columns.length
-  for (const column of columns) column.width = width
+  const weight = columns.reduce((total, column) => total + (column.key === 'modality' ? 1.6 : 1), 0)
+  const unit = (PAGE_WIDTH - MARGIN * 2) / weight
+  for (const column of columns) {
+    column.width = unit * (column.key === 'modality' ? 1.6 : 1)
+  }
   return columns
 }
 
@@ -277,7 +285,7 @@ function drawWeeklyTable(
   }
 
   const headerHeight = 32
-  const rowHeight = fields.modality_window ? 40 : 30
+  const rowHeight = fields.modality_window ? 54 : 30
   const totalHeight = fields.week_total ? 40 : 0
   const bodyHeight = headerHeight + days.length * rowHeight + totalHeight
   const x0 = MARGIN
@@ -314,7 +322,7 @@ function drawWeeklyTable(
       const textFont = column.key === 'day' ? medium : regular
       lines.forEach((text, lineIndex) => {
         const textWidth = textFont.widthOfTextAtSize(text, size)
-        const lineY = lines.length > 1 ? y - 16 - lineIndex * 12 : y - 19
+        const lineY = lines.length > 1 ? y - 14 - lineIndex * 12 : y - 19
         page.drawText(text, {
           x: column.align === 'right' ? x + column.width - textWidth - 12 : x + 12,
           y: lineY,

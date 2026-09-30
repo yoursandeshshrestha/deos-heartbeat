@@ -1,4 +1,5 @@
 import type { TrustReport } from './buildTrustReport.js'
+import { dualClock } from './londonTime.js'
 import type { ReportPdfSettings } from './pdfSettings.js'
 import { hasVisiblePdfFigure } from './pdfSettings.js'
 import {
@@ -35,7 +36,7 @@ function speedText(value: number | null) {
 
 function windowText(day: DayPerformance) {
   if (!day.modalityStart || !day.modalityEnd) return 'not available'
-  return `start time ${day.modalityStart}, end time ${day.modalityEnd}`
+  return `start time ${dualClock(day.modalityStart)}, end time ${dualClock(day.modalityEnd)} (GMT+01:00)`
 }
 
 function describeDay(day: DayPerformance, fields: ReportPdfSettings) {
@@ -46,8 +47,7 @@ function describeDay(day: DayPerformance, fields: ReportPdfSettings) {
   return bits.join(', ')
 }
 
-export function reportSubject(report: TrustReport) {
-  const date = formatDateLondon(report.generatedAt)
+export function reportSubject(report: TrustReport, date = formatDateLondon(report.generatedAt)) {
   const typeLabel = report.reportType === 'daily' ? 'daily' : 'weekly'
   return `${report.trustName} ${typeLabel} performance summary — ${date}`
 }
@@ -63,8 +63,11 @@ export function renderTrustEmail(input: {
   text: string
 } {
   const { report, vans, fields, attached } = input
-  const subject = reportSubject(report)
-  const date = formatDateLondon(report.generatedAt)
+  const date =
+    report.reportType === 'daily' && vans[0]?.days[0]?.label
+      ? vans[0].days[0].label
+      : formatDateLondon(report.generatedAt)
+  const subject = reportSubject(report, date)
   const typeLabel = report.reportType === 'daily' ? 'Daily' : 'Weekly'
   const visible = hasVisiblePdfFigure(fields, report.reportType)
 

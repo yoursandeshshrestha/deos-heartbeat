@@ -99,11 +99,21 @@ export function londonDaysEndingYesterday(count: number, now = new Date()): Lond
   return days
 }
 
-export function formatLondonTime(epochSec: number) {
-  return new Intl.DateTimeFormat('en-GB', {
-    timeZone: LONDON,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(epochSec * 1000))
+/** Clock time in GMT+01:00. Fixed offset, including through UK winter. */
+export function formatGmtPlus1Time(epochSec: number) {
+  const shifted = new Date(epochSec * 1000 + 60 * 60 * 1000)
+  const hour = String(shifted.getUTCHours()).padStart(2, '0')
+  const minute = String(shifted.getUTCMinutes()).padStart(2, '0')
+  return `${hour}:${minute}`
+}
+
+/** `18:20 (6:20 PM)` from a GMT+01:00 24-hour `HH:mm` string. */
+export function dualClock(time24: string) {
+  const match = /^(\d{2}):(\d{2})$/.exec(time24)
+  if (!match) return time24
+  const hour = Number(match[1])
+  const minute = match[2]
+  const suffix = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${time24} (${hour12}:${minute} ${suffix})`
 }

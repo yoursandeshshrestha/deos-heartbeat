@@ -16,7 +16,7 @@ For each trust, a report is sent only when all of:
 
 Content: one performance PDF per trust (a page per included van), plus a short email summary. Counts only — no patient identifiers.
 
-Daily PDF (London today): studies transferred, average transfer speed, and the start/end time the modality was connected.
+Daily PDF (the previous London day, so a 30 Sep send covers 29 Sep): studies transferred, average transfer speed, and the start/end time the modality was connected. Modality times are shown in GMT+01:00, in both 24-hour and 12-hour form (`18:20 (6:20 PM)`).
 
 Weekly PDF (the previous seven London days, Monday–Sunday when the Monday cron runs): the same figures per day, plus a week total.
 

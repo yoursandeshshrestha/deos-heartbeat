@@ -1,6 +1,6 @@
 import { queryRange, type PromRangeSample } from '../fleet/grafana.js'
 import {
-  formatLondonTime,
+  formatGmtPlus1Time,
   londonDaysEndingYesterday,
   londonToday,
   type LondonDay,
@@ -49,17 +49,83 @@ function valuesInDay(sample: PromRangeSample, day: LondonDay) {
   return sample.values.filter(([ts]) => ts >= day.startSec && ts < day.endSec)
 }
 
+/** Labels that identify one summary series, ignoring the metric name. */
+function seriesIdentity(metric: Record<string, string>) {
+  return Object.keys(metric)
+    .filter((key) => key !== '__name__')
+    .sort()
+    .map((key) => `${key}=${metric[key]}`)
+    .join('\n')
+}
+
+/**
+ * Mean bytes/s from a Prometheus summary (`_sum` / `_count`).
+ * A counter that starts at 0 or 1 inside the day includes that first observation.
+ * A counter already running before the day contributes only the increase during the day.
+ * Several peers are combined as one weighted mean.
+ */
+function meanSpeedBytes(input: {
+  sums: PromRangeSample[]
+  counts: PromRangeSample[]
+  instance: string
+  day: LondonDay
+}) {
+  const countsByIdentity = new Map(
+    samplesForInstance(input.counts, input.instance).map((sample) => [
+      seriesIdentity(sample.metric),
+      sample,
+    ]),
+  )
+  let sumIncrease = 0
+  let countIncrease = 0
+
+  for (const sumSeries of samplesForInstance(input.sums, input.instance)) {
+    const countSeries = countsByIdentity.get(seriesIdentity(sumSeries.metric))
+    if (!countSeries) continue
+    const countAt = new Map(
+      valuesInDay(countSeries, input.day).map(([ts, raw]) => [ts, Number(raw)]),
+    )
+    const paired = valuesInDay(sumSeries, input.day).flatMap(([ts, raw]) => {
+      const count = countAt.get(ts)
+      const sum = Number(raw)
+      if (count == null || !Number.isFinite(count) || !Number.isFinite(sum)) return []
+      return [{ sum, count }]
+    })
+    if (!paired.length) continue
+
+    const first = paired[0]
+    if (first.count > 0 && first.count <= 1) {
+      sumIncrease += first.sum
+      countIncrease += first.count
+    }
+    for (let index = 1; index < paired.length; index += 1) {
+      const previous = paired[index - 1]
+      const next = paired[index]
+      if (next.count >= previous.count && next.sum >= previous.sum) {
+        sumIncrease += next.sum - previous.sum
+        countIncrease += next.count - previous.count
+      } else if (next.count < previous.count) {
+        sumIncrease += Math.max(next.sum, 0)
+        countIncrease += Math.max(next.count, 0)
+      }
+    }
+  }
+
+  if (countIncrease <= 0) return null
+  return sumIncrease / countIncrease
+}
+
 export function bucketVanDays(input: {
   van: PerformanceVanInput
   days: LondonDay[]
   studies: PromRangeSample[]
-  speeds: PromRangeSample[]
+  speedSums: PromRangeSample[]
+  speedCounts: PromRangeSample[]
   modality: PromRangeSample[]
   /** When set, fill today's missing studies/speed from the live fleet snapshot. */
   todayDate?: string
 }): DayPerformance[] {
   const studySeries = samplesForInstance(input.studies, input.van.instance)
-  const speedSeries = samplesForInstance(input.speeds, input.van.instance)
   const modalityKey = input.van.modalityTarget || input.van.instance
   const modalitySeries = samplesForInstance(input.modality, modalityKey)
 
@@ -73,18 +139,13 @@ export function bucketVanDays(input: {
       }
     }
 
-    const speeds: number[] = []
-    for (const series of speedSeries) {
-      for (const [, raw] of valuesInDay(series, day)) {
-        const bytes = Number(raw)
-        if (!Number.isFinite(bytes) || bytes <= 0) continue
-        speeds.push(bytes / 1_000_000)
-      }
-    }
-    let speedMbps =
-      speeds.length > 0
-        ? speeds.reduce((total, value) => total + value, 0) / speeds.length
-        : null
+    const speedBytes = meanSpeedBytes({
+      sums: input.speedSums,
+      counts: input.speedCounts,
+      instance: input.van.instance,
+      day,
+    })
+    let speedMbps = speedBytes == null ? null : speedBytes / 1_000_000
 
     let modalityStart: string | null = null
     let modalityEnd: string | null = null
@@ -99,8 +160,8 @@ export function bucketVanDays(input: {
       }
     }
     if (Number.isFinite(first) && Number.isFinite(last)) {
-      modalityStart = formatLondonTime(first)
-      modalityEnd = formatLondonTime(last)
+      modalityStart = formatGmtPlus1Time(first)
+      modalityEnd = formatGmtPlus1Time(last)
     }
 
     const isToday = input.todayDate != null && day.date === input.todayDate
@@ -139,8 +200,9 @@ async function safeRange(
 }
 
 /**
- * Daily uses today (London). Weekly uses the previous 7 London days
- * (Mon–Sun when the Monday morning cron runs).
+ * Daily uses the previous London day (the completed day when the morning
+ * cron runs). Weekly uses the previous 7 London days (Mon–Sun when the
+ * Monday morning cron runs).
  */
 export async function loadReportPerformance(input: {
   reportType: ReportType
@@ -152,16 +214,13 @@ export async function loadReportPerformance(input: {
   const today = londonToday(now)
   const days =
     input.reportType === 'daily'
-      ? [today]
+      ? londonDaysEndingYesterday(1, now)
       : londonDaysEndingYesterday(7, now)
 
   if (!input.vans.length || !days.length) return []
 
   const startSec = days[0].startSec
-  const endSec =
-    input.reportType === 'daily'
-      ? Math.floor(now.getTime() / 1000)
-      : days[days.length - 1].endSec
+  const endSec = days[days.length - 1].endSec
 
   const instances = [...new Set(input.vans.map((van) => van.instance))]
   const modalityInstances = [
@@ -175,20 +234,27 @@ export async function loadReportPerformance(input: {
   const wantSpeed = input.fields.transfer_speed
   const wantModality = input.fields.modality_window
 
-  const [studies, speeds, modality] = await Promise.all([
+  const [studies, speedSums, speedCounts, modality] = await Promise.all([
     safeRange(
       wantStudies && Boolean(instanceRe),
       `orthanc_number_of_studies_today{instance=~"${instanceRe}"}`,
       startSec,
       endSec,
-      1800,
+      300,
     ),
     safeRange(
       wantSpeed && Boolean(instanceRe),
-      `deos_sync_transfer_speed{instance=~"${instanceRe}"}`,
+      `deos_sync_transfer_speed_sum{instance=~"${instanceRe}"}`,
       startSec,
       endSec,
-      1800,
+      300,
+    ),
+    safeRange(
+      wantSpeed && Boolean(instanceRe),
+      `deos_sync_transfer_speed_count{instance=~"${instanceRe}"}`,
+      startSec,
+      endSec,
+      300,
     ),
     safeRange(
       wantModality && Boolean(modalityRe),
@@ -206,7 +272,8 @@ export async function loadReportPerformance(input: {
       van,
       days,
       studies,
-      speeds,
+      speedSums,
+      speedCounts,
       modality,
       todayDate: today.date,
     }),

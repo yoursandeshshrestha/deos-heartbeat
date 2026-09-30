@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { londonDaysEndingYesterday, londonToday } from './londonTime.js'
+import { dualClock, formatGmtPlus1Time, londonDaysEndingYesterday, londonToday } from './londonTime.js'
 import { bucketVanDays, promInstanceRegex } from './performance.js'
 import { hasVisiblePdfFigure, parseReportPdfSettings } from './pdfSettings.js'
 import { renderPerformancePdf } from './renderPerformancePdf.js'
@@ -24,6 +24,11 @@ describe('london report windows', () => {
   it('uses the London calendar date for the daily report', () => {
     const day = londonToday(new Date('2026-09-27T22:30:00Z'))
     expect(day.date).toBe('2026-09-27')
+  })
+
+  it('covers the previous London day when the daily report runs on the 30th', () => {
+    const [day] = londonDaysEndingYesterday(1, new Date('2026-09-30T05:00:00Z'))
+    expect(day.date).toBe('2026-09-29')
   })
 })
 
@@ -58,12 +63,21 @@ describe('bucketVanDays', () => {
           ],
         },
       ],
-      speeds: [
+      speedSums: [
         {
-          metric: { instance: 'trust.van1' },
+          metric: { instance: 'trust.van1', peer: 'pacs' },
           values: [
             [day.startSec + 3600, '2000000'],
-            [day.startSec + 7200, '2480000'],
+            [day.startSec + 7200, '4480000'],
+          ],
+        },
+      ],
+      speedCounts: [
+        {
+          metric: { instance: 'trust.van1', peer: 'pacs' },
+          values: [
+            [day.startSec + 3600, '1'],
+            [day.startSec + 7200, '2'],
           ],
         },
       ],
@@ -82,9 +96,57 @@ describe('bucketVanDays', () => {
 
     expect(days[0].studies).toBe(43)
     expect(days[0].speedMbps).toBeCloseTo(2.24, 2)
-    expect(days[0].modalityStart).toMatch(/^\d{2}:\d{2}$/)
-    expect(days[0].modalityEnd).toMatch(/^\d{2}:\d{2}$/)
-    expect(days[0].modalityStart).not.toBe(days[0].modalityEnd)
+    expect(days[0].modalityStart).toBe('00:44')
+    expect(days[0].modalityEnd).toBe('18:03')
+  })
+
+  it('uses only the in-day increase when the speed counter was already running', () => {
+    const days = bucketVanDays({
+      van: {
+        instance: 'trust.van1',
+        displayName: 'Van 1',
+        modalityTarget: null,
+        studiesToday: null,
+        syncSpeedMbps: null,
+      },
+      days: [day],
+      studies: [],
+      speedSums: [
+        {
+          metric: { instance: 'trust.van1' },
+          values: [
+            [day.startSec + 3600, '10000000'],
+            [day.startSec + 7200, '12000000'],
+          ],
+        },
+      ],
+      speedCounts: [
+        {
+          metric: { instance: 'trust.van1' },
+          values: [
+            [day.startSec + 3600, '10'],
+            [day.startSec + 7200, '11'],
+          ],
+        },
+      ],
+      modality: [],
+    })
+
+    expect(days[0].speedMbps).toBeCloseTo(2, 2)
+  })
+})
+
+describe('formatGmtPlus1Time', () => {
+  it('stays one hour ahead of UTC through UK winter', () => {
+    const winterUtc = Date.UTC(2026, 0, 15, 8, 0, 0) / 1000
+    expect(formatGmtPlus1Time(winterUtc)).toBe('09:00')
+  })
+
+  it('prints 24-hour and 12-hour clocks together', () => {
+    expect(dualClock('08:00')).toBe('08:00 (8:00 AM)')
+    expect(dualClock('18:20')).toBe('18:20 (6:20 PM)')
+    expect(dualClock('00:05')).toBe('00:05 (12:05 AM)')
+    expect(dualClock('12:00')).toBe('12:00 (12:00 PM)')
   })
 })
 
