@@ -96,8 +96,8 @@ describe('bucketVanDays', () => {
 
     expect(days[0].studies).toBe(43)
     expect(days[0].speedMbps).toBeCloseTo(2.24, 2)
-    expect(days[0].modalityStart).toBe('00:44')
-    expect(days[0].modalityEnd).toBe('18:03')
+    expect(days[0].modalityStart).toBe('23:44')
+    expect(days[0].modalityEnd).toBe('17:03')
   })
 
   it('uses only the in-day increase when the speed counter was already running', () => {

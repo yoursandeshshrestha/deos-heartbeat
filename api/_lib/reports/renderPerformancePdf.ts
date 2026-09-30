@@ -63,11 +63,7 @@ function formatSpeed(value: number | null) {
 
 function modalityLines(day: DayPerformance) {
   if (!day.modalityStart || !day.modalityEnd) return ['Not available']
-  return [
-    `Start  ${dualClock(day.modalityStart)}`,
-    `End    ${dualClock(day.modalityEnd)}`,
-    'GMT+01:00',
-  ]
+  return [`Start  ${dualClock(day.modalityStart)}`, `End    ${dualClock(day.modalityEnd)}`]
 }
 
 function drawCard(
@@ -285,7 +281,7 @@ function drawWeeklyTable(
   }
 
   const headerHeight = 32
-  const rowHeight = fields.modality_window ? 54 : 30
+  const rowHeight = fields.modality_window ? 42 : 30
   const totalHeight = fields.week_total ? 40 : 0
   const bodyHeight = headerHeight + days.length * rowHeight + totalHeight
   const x0 = MARGIN

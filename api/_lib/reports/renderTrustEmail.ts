@@ -36,7 +36,7 @@ function speedText(value: number | null) {
 
 function windowText(day: DayPerformance) {
   if (!day.modalityStart || !day.modalityEnd) return 'not available'
-  return `start time ${dualClock(day.modalityStart)}, end time ${dualClock(day.modalityEnd)} (GMT+01:00)`
+  return `start time ${dualClock(day.modalityStart)}, end time ${dualClock(day.modalityEnd)}`
 }
 
 function describeDay(day: DayPerformance, fields: ReportPdfSettings) {

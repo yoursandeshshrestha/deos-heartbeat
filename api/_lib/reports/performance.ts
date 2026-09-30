@@ -1,6 +1,6 @@
 import { queryRange, type PromRangeSample } from '../fleet/grafana.js'
 import {
-  formatGmtPlus1Time,
+  formatUtcTime,
   londonDaysEndingYesterday,
   londonToday,
   type LondonDay,
@@ -160,8 +160,8 @@ export function bucketVanDays(input: {
       }
     }
     if (Number.isFinite(first) && Number.isFinite(last)) {
-      modalityStart = formatGmtPlus1Time(first)
-      modalityEnd = formatGmtPlus1Time(last)
+      modalityStart = formatUtcTime(first)
+      modalityEnd = formatUtcTime(last)
     }
 
     const isToday = input.todayDate != null && day.date === input.todayDate
@@ -261,7 +261,7 @@ export async function loadReportPerformance(input: {
       `probe_success{job="modality",instance=~"${modalityRe}"}`,
       startSec,
       endSec,
-      300,
+      60,
     ),
   ])
 

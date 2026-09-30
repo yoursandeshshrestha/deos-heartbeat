@@ -99,6 +99,14 @@ export function londonDaysEndingYesterday(count: number, now = new Date()): Lond
   return days
 }
 
+/** Minute of a Prometheus sample, in UTC. */
+export function formatUtcTime(epochSec: number) {
+  const date = new Date(epochSec * 1000)
+  const hour = String(date.getUTCHours()).padStart(2, '0')
+  const minute = String(date.getUTCMinutes()).padStart(2, '0')
+  return `${hour}:${minute}`
+}
+
 /** Clock time in GMT+01:00. Fixed offset, including through UK winter. */
 export function formatGmtPlus1Time(epochSec: number) {
   const shifted = new Date(epochSec * 1000 + 60 * 60 * 1000)
