@@ -27,7 +27,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
-import { runMutation, useReportConfig } from '@/hooks/useReportConfig'
+import {
+  useReportConfig,
+  type RecipientPatch,
+  type TrustPatch,
+  type VanPatch,
+} from '@/hooks/useReportConfig'
 import { useAuth } from '@/lib/auth'
 import {
   slugify,
@@ -111,7 +116,8 @@ function readPdfSettings(value: unknown): PdfSettings {
 export function ReportsPage() {
   const { role } = useAuth()
   const canWrite = role === 'admin'
-  const { trusts, unassigned, loading, error, reload } = useReportConfig()
+  const { trusts, unassigned, loading, error, reload, updateTrust, updateVan, updateRecipient } =
+    useReportConfig()
   const [pdfSettings, setPdfSettings] = useState<PdfSettings>(DEFAULT_PDF_SETTINGS)
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
@@ -215,7 +221,9 @@ export function ReportsPage() {
               <TrustDetail
                 trust={selected}
                 canWrite={canWrite}
-                onReload={reload}
+                onUpdateTrust={updateTrust}
+                onUpdateVan={updateVan}
+                onUpdateRecipient={updateRecipient}
                 onAddVan={() => setAddVanOpen(true)}
                 onAddRecipient={() => setAddRecipientOpen(true)}
               />
@@ -311,15 +319,7 @@ export function ReportsPage() {
                           size="sm"
                           variant="ghost"
                           onClick={() => {
-                            void runMutation(
-                              'Van dismissed',
-                              () =>
-                                supabase
-                                  .from('vans')
-                                  .update({ status: 'removed' })
-                                  .eq('id', van.id),
-                              reload,
-                            )
+                            void updateVan(van.id, { status: 'removed' }, 'Van dismissed')
                           }}
                         >
                           Dismiss
@@ -424,13 +424,17 @@ function TrustList({
 function TrustDetail({
   trust,
   canWrite,
-  onReload,
+  onUpdateTrust,
+  onUpdateVan,
+  onUpdateRecipient,
   onAddVan,
   onAddRecipient,
 }: {
   trust: TrustWithRelations
   canWrite: boolean
-  onReload: () => Promise<void>
+  onUpdateTrust: (id: string, patch: TrustPatch, label: string) => Promise<boolean>
+  onUpdateVan: (id: string, patch: VanPatch, label: string) => Promise<boolean>
+  onUpdateRecipient: (id: string, patch: RecipientPatch, label: string) => Promise<boolean>
   onAddVan: () => void
   onAddRecipient: () => void
 }) {
@@ -514,14 +518,10 @@ function TrustDetail({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  void runMutation(
+                  void onUpdateTrust(
+                    trust.id,
+                    { active: !trust.active },
                     trust.active ? 'Trust deactivated' : 'Trust activated',
-                    () =>
-                      supabase
-                        .from('trusts')
-                        .update({ active: !trust.active })
-                        .eq('id', trust.id),
-                    onReload,
                   )
                 }}
               >
@@ -536,15 +536,7 @@ function TrustDetail({
             checked={trust.daily_enabled}
             disabled={!canWrite}
             onChange={(checked) => {
-              void runMutation(
-                'Daily toggle updated',
-                () =>
-                  supabase
-                    .from('trusts')
-                    .update({ daily_enabled: checked })
-                    .eq('id', trust.id),
-                onReload,
-              )
+              void onUpdateTrust(trust.id, { daily_enabled: checked }, 'Daily toggle updated')
             }}
           />
           <ToggleRow
@@ -552,15 +544,7 @@ function TrustDetail({
             checked={trust.weekly_enabled}
             disabled={!canWrite}
             onChange={(checked) => {
-              void runMutation(
-                'Weekly toggle updated',
-                () =>
-                  supabase
-                    .from('trusts')
-                    .update({ weekly_enabled: checked })
-                    .eq('id', trust.id),
-                onReload,
-              )
+              void onUpdateTrust(trust.id, { weekly_enabled: checked }, 'Weekly toggle updated')
             }}
           />
         </div>
@@ -601,7 +585,7 @@ function TrustDetail({
                     key={van.id}
                     van={van}
                     canWrite={canWrite}
-                    onReload={onReload}
+                    onUpdateVan={onUpdateVan}
                   />
                 ))}
               </div>
@@ -636,7 +620,7 @@ function TrustDetail({
                 key={recipient.id}
                 recipient={recipient}
                 canWrite={canWrite}
-                onReload={onReload}
+                onUpdateRecipient={onUpdateRecipient}
               />
             ))}
           </div>
@@ -649,11 +633,11 @@ function TrustDetail({
 function VanRow({
   van,
   canWrite,
-  onReload,
+  onUpdateVan,
 }: {
   van: Van
   canWrite: boolean
-  onReload: () => Promise<void>
+  onUpdateVan: (id: string, patch: VanPatch, label: string) => Promise<boolean>
 }) {
   return (
     <div className="grid grid-cols-[minmax(120px,1.2fr)_minmax(140px,1.4fr)_70px_70px_140px] items-center gap-3 px-4 py-3 text-sm">
@@ -667,15 +651,7 @@ function VanRow({
           checked={van.daily_enabled}
           disabled={!canWrite}
           onCheckedChange={(checked) => {
-            void runMutation(
-              'Van daily toggle updated',
-              () =>
-                supabase
-                  .from('vans')
-                  .update({ daily_enabled: checked })
-                  .eq('id', van.id),
-              onReload,
-            )
+            void onUpdateVan(van.id, { daily_enabled: checked }, 'Van daily toggle updated')
           }}
         />
       </div>
@@ -685,15 +661,7 @@ function VanRow({
           checked={van.weekly_enabled}
           disabled={!canWrite}
           onCheckedChange={(checked) => {
-            void runMutation(
-              'Van weekly toggle updated',
-              () =>
-                supabase
-                  .from('vans')
-                  .update({ weekly_enabled: checked })
-                  .eq('id', van.id),
-              onReload,
-            )
+            void onUpdateVan(van.id, { weekly_enabled: checked }, 'Van weekly toggle updated')
           }}
         />
       </div>
@@ -704,15 +672,7 @@ function VanRow({
             type="status"
             value={van.status}
             onValueChange={(value) => {
-              void runMutation(
-                'Van status updated',
-                () =>
-                  supabase
-                    .from('vans')
-                    .update({ status: value as VanStatus })
-                    .eq('id', van.id),
-                onReload,
-              )
+              void onUpdateVan(van.id, { status: value as VanStatus }, 'Van status updated')
             }}
           >
             <ComboboxTrigger className="w-full" />
@@ -741,11 +701,11 @@ function VanRow({
 function RecipientRow({
   recipient,
   canWrite,
-  onReload,
+  onUpdateRecipient,
 }: {
   recipient: Recipient
   canWrite: boolean
-  onReload: () => Promise<void>
+  onUpdateRecipient: (id: string, patch: RecipientPatch, label: string) => Promise<boolean>
 }) {
   return (
     <div className="flex items-center gap-3 px-4 py-3">
@@ -758,14 +718,10 @@ function RecipientRow({
         checked={recipient.active}
         disabled={!canWrite}
         onCheckedChange={(checked) => {
-          void runMutation(
+          void onUpdateRecipient(
+            recipient.id,
+            { active: checked },
             checked ? 'Recipient activated' : 'Recipient deactivated',
-            () =>
-              supabase
-                .from('recipients')
-                .update({ active: checked })
-                .eq('id', recipient.id),
-            onReload,
           )
         }}
       />
