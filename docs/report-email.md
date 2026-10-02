@@ -3,7 +3,7 @@
 Heartbeat sends **one HTML + text email per trust** via [Resend](https://resend.com), using live fleet metrics. No external n8n workflow is required for delivery.
 
 **Endpoint:** `GET|POST /functions/v1/api/reports/send` on the Supabase project  
-**Auth:** `Authorization: Bearer $CRON_SECRET` (pg_cron) **or** admin Supabase access token  
+**Auth:** `x-cron-secret: $CRON_SECRET` (pg_cron) **or** admin Supabase access token. `Authorization: Bearer $CRON_SECRET` still works for manual calls.  
 **Secrets (Supabase Edge Functions, not Vercel):** `RESEND_API_KEY`, `GRAFANA_TOKEN`, `CRON_SECRET`, `REPORT_CONFIG_KEY`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected into the function. `REPORT_FROM_EMAIL` defaults to `no-reply@mail.thrumble.ai`.
 
 ## Eligibility

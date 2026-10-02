@@ -20,6 +20,25 @@ function isReportType(value: unknown): value is ReportType {
   return value === 'daily' || value === 'weekly'
 }
 
+async function sendTrustReportsRetrying(input: {
+  reportType: ReportType
+  trustId?: string
+  dryRun: boolean
+}) {
+  let lastError: unknown
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await sendTrustReports(input)
+    } catch (error) {
+      lastError = error
+      const message = error instanceof Error ? error.message : ''
+      if (!message.includes('JWT issued at future') || attempt === 2) throw error
+      await new Promise((resolve) => setTimeout(resolve, 400 * (attempt + 1)))
+    }
+  }
+  throw lastError
+}
+
 function readQueryFlag(value: string | string[] | undefined): boolean {
   if (Array.isArray(value)) return value.some((v) => v === '1' || v === 'true')
   return value === '1' || value === 'true'
@@ -69,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       : readQueryFlag(req.query.dry_run)
 
   try {
-    const summary = await sendTrustReports({
+    const summary = await sendTrustReportsRetrying({
       reportType: reportTypeRaw,
       trustId,
       dryRun,

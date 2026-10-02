@@ -112,17 +112,24 @@ export async function requireAdmin(
   }
 }
 
+function readCronHeader(req: VercelRequest): string | null {
+  const header = req.headers['x-cron-secret']
+  if (typeof header === 'string' && header.trim()) return header.trim()
+  return null
+}
+
 /**
- * Auth for report send: Vercel Cron (`CRON_SECRET`) or Supabase admin session JWT.
+ * Auth for report send: `x-cron-secret` (pg_cron) or an admin Supabase session JWT.
+ * The cron secret stays off `Authorization` so the edge gateway does not treat it as a JWT.
  */
 export async function requireCronOrAdmin(
   req: VercelRequest,
   res: VercelResponse,
 ): Promise<boolean> {
-  const bearer = readBearer(req)
   const cronSecret = optionalEnv('CRON_SECRET')
+  const presented = readCronHeader(req) ?? readBearer(req)
 
-  if (cronSecret && bearer === cronSecret) {
+  if (cronSecret && presented === cronSecret) {
     return true
   }
 
