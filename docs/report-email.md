@@ -4,7 +4,7 @@ Heartbeat sends **one HTML + text email per trust** via [Resend](https://resend.
 
 **Endpoint:** `GET|POST /functions/v1/api/reports/send` on the Supabase project  
 **Auth:** `x-cron-secret: $CRON_SECRET` (pg_cron) **or** admin Supabase access token. `Authorization: Bearer $CRON_SECRET` still works for manual calls.  
-**Secrets (Supabase Edge Functions, not Vercel):** `RESEND_API_KEY`, `GRAFANA_TOKEN`, `CRON_SECRET`, `REPORT_CONFIG_KEY`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected into the function. `REPORT_FROM_EMAIL` defaults to `no-reply@mail.thrumble.ai`.
+**Secrets (Supabase Edge Functions, not Vercel):** `RESEND_API_KEY`, `GRAFANA_TOKEN`, `CRON_SECRET`, `REPORT_CONFIG_KEY`, `SLACK_REPORT_WEBHOOK_URL`. `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected into the function. `REPORT_FROM_EMAIL` defaults to `no-reply@mail.thrumble.ai`.
 
 ## Eligibility
 
@@ -43,6 +43,8 @@ Content-Type: application/json
 
 Successful sends insert `report_runs` rows (`success` / `failure`).
 
+After the run, one Slack message lists every trust whose email went out: recipient addresses and the PDF filename. Skipped and failed trusts are left out. Dry runs do not post. Set `SLACK_REPORT_WEBHOOK_URL` on the Edge Function; if it is missing, or Slack rejects the post, the emails still send.
+
 Each generated PDF is also stored in the private `generated-reports` bucket and listed on **Report history** (`/report-history`), newest first, 10 per page. Dry runs are not stored. If storage fails, the email still sends and the result includes `copy not stored`. Signed-in readers open a PDF via `GET /api/generated-reports?id=<uuid>`.
 
 ## Dry run
@@ -60,7 +62,7 @@ curl -sS -X POST -H "Authorization: Bearer $CRON_SECRET" \
 
 ## Ops checklist
 
-1. Set `RESEND_API_KEY`, `GRAFANA_TOKEN`, and `CRON_SECRET` with `supabase secrets set` (not on Vercel).
+1. Set `RESEND_API_KEY`, `GRAFANA_TOKEN`, `CRON_SECRET`, and `SLACK_REPORT_WEBHOOK_URL` with `supabase secrets set` (not on Vercel).
 2. Verify the from-domain `no-reply@mail.thrumble.ai` in the Resend dashboard.
 3. Confirm the daily cron returns `{ sent, failed, skipped }`.
 4. Add recipients per trust in the Reports UI before expecting production mail.

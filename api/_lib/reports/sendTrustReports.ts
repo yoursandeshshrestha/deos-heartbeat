@@ -18,6 +18,7 @@ import {
   renderPerformancePdf,
 } from './renderPerformancePdf.js'
 import { renderTrustEmail, reportSubject } from './renderTrustEmail.js'
+import { notifyReportsSent, type SlackReportItem } from './slackNotify.js'
 import { reportPeriod, storeGeneratedReport } from './storeGeneratedReport.js'
 
 export type SendTrustReportsInput = {
@@ -132,6 +133,7 @@ export async function sendTrustReports(
   }
 
   const db = getServiceClient()
+  const slackItems: SlackReportItem[] = []
   const summary: SendTrustReportsResult = {
     report_type: reportType,
     dry_run: dryRun,
@@ -197,14 +199,17 @@ export async function sendTrustReports(
         vans: performance,
         fields,
       })
+      const pdfFilename = pdf
+        ? performancePdfFilename(report.trustSlug, reportType, performance)
+        : null
       let storageNote: string | undefined
-      if (pdf) {
+      if (pdf && pdfFilename) {
         const period = reportPeriod(reportType, performance)
         try {
           await storeGeneratedReport({
             trustId: trust.id,
             reportType,
-            filename: performancePdfFilename(report.trustSlug, reportType, performance),
+            filename: pdfFilename,
             pdf,
             periodStart: period.periodStart,
             periodEnd: period.periodEnd,
@@ -226,18 +231,15 @@ export async function sendTrustReports(
         subject: rendered.subject,
         html: rendered.html,
         text: rendered.text,
-        attachments: pdf
-          ? [
-              {
-                filename: performancePdfFilename(
-                  report.trustSlug,
-                  reportType,
-                  performance,
-                ),
-                content: Buffer.from(pdf).toString('base64'),
-              },
-            ]
-          : undefined,
+        attachments:
+          pdf && pdfFilename
+            ? [
+                {
+                  filename: pdfFilename,
+                  content: Buffer.from(pdf).toString('base64'),
+                },
+              ]
+            : undefined,
       })
 
       await db.from('report_runs').insert({
@@ -249,6 +251,11 @@ export async function sendTrustReports(
       })
 
       summary.sent += 1
+      slackItems.push({
+        trustName: trust.name,
+        emails: to,
+        pdfFilename,
+      })
       summary.results.push({
         trust_id: trust.id,
         trust_name: trust.name,
@@ -273,6 +280,10 @@ export async function sendTrustReports(
         reason: message,
       })
     }
+  }
+
+  if (!dryRun) {
+    await notifyReportsSent({ reportType, items: slackItems })
   }
 
   return summary
