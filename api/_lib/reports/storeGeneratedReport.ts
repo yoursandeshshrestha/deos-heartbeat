@@ -48,11 +48,12 @@ export async function storeGeneratedReport(input: {
     throw new Error(uploadError.message)
   }
 
+  const filename = safeReportFilename(input.filename)
   const { error } = await db.from('generated_reports').insert({
     id,
     trust_id: input.trustId,
     report_type: input.reportType,
-    filename: safeReportFilename(input.filename),
+    filename,
     storage_path: storagePath,
     period_label: input.periodLabel,
     period_start: input.periodStart,
@@ -62,6 +63,18 @@ export async function storeGeneratedReport(input: {
     await db.storage.from(BUCKET).remove([storagePath])
     throw new Error(error.message)
   }
+
+  return { id, filename, storagePath }
+}
+
+/** Link anyone in the Slack channel can open. Expires after 7 days. */
+export async function signedReportPdfUrl(storagePath: string) {
+  const db = getServiceClient()
+  const { data, error } = await db.storage
+    .from(BUCKET)
+    .createSignedUrl(storagePath, 60 * 60 * 24 * 7)
+  if (error || !data?.signedUrl) return null
+  return data.signedUrl
 }
 
 export async function readGeneratedReportPdf(

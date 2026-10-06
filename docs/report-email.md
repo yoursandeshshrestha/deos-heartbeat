@@ -43,7 +43,7 @@ Content-Type: application/json
 
 Successful sends insert `report_runs` rows (`success` / `failure`).
 
-After the run, one Slack message lists every trust whose email went out: recipient addresses and the PDF filename. Skipped and failed trusts are left out. Dry runs do not post. Set `SLACK_REPORT_WEBHOOK_URL` on the Edge Function; if it is missing, or Slack rejects the post, the emails still send.
+After the run, one Slack message lists every trust whose email went out: recipient addresses and a link that opens the PDF (valid for 7 days). Skipped and failed trusts are left out. Dry runs do not post. Set `SLACK_REPORT_WEBHOOK_URL` on the Edge Function; if it is missing, or Slack rejects the post, the emails still send. The incoming webhook cannot attach the file itself.
 
 Each generated PDF is also stored in the private `generated-reports` bucket and listed on **Report history** (`/report-history`), newest first, 10 per page. Dry runs are not stored. If storage fails, the email still sends and the result includes `copy not stored`. Signed-in readers open a PDF via `GET /api/generated-reports?id=<uuid>`.
 

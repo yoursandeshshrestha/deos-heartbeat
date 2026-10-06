@@ -19,7 +19,11 @@ import {
 } from './renderPerformancePdf.js'
 import { renderTrustEmail, reportSubject } from './renderTrustEmail.js'
 import { notifyReportsSent, type SlackReportItem } from './slackNotify.js'
-import { reportPeriod, storeGeneratedReport } from './storeGeneratedReport.js'
+import {
+  reportPeriod,
+  signedReportPdfUrl,
+  storeGeneratedReport,
+} from './storeGeneratedReport.js'
 
 export type SendTrustReportsInput = {
   reportType: ReportType
@@ -203,10 +207,11 @@ export async function sendTrustReports(
         ? performancePdfFilename(report.trustSlug, reportType, performance)
         : null
       let storageNote: string | undefined
+      let pdfUrl: string | null = null
       if (pdf && pdfFilename) {
         const period = reportPeriod(reportType, performance)
         try {
-          await storeGeneratedReport({
+          const stored = await storeGeneratedReport({
             trustId: trust.id,
             reportType,
             filename: pdfFilename,
@@ -215,6 +220,11 @@ export async function sendTrustReports(
             periodEnd: period.periodEnd,
             periodLabel: period.periodLabel,
           })
+          try {
+            pdfUrl = await signedReportPdfUrl(stored.storagePath)
+          } catch {
+            pdfUrl = null
+          }
         } catch (storageError) {
           storageNote =
             storageError instanceof Error ? storageError.message : 'could not store PDF'
@@ -255,6 +265,7 @@ export async function sendTrustReports(
         trustName: trust.name,
         emails: to,
         pdfFilename,
+        pdfUrl,
       })
       summary.results.push({
         trust_id: trust.id,

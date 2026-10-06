@@ -53,4 +53,23 @@ describe('formatReportSlackMessage', () => {
     expect(text.startsWith('✅ Weekly reports sent — 3 Oct 2026')).toBe(true)
     expect(text).toContain('PDF: none')
   })
+
+  it('links the PDF filename when a download URL is present', () => {
+    const text = formatReportSlackMessage({
+      reportType: 'daily',
+      sentAt: new Date('2026-10-03T12:00:00Z'),
+      items: [
+        {
+          trustName: 'TIC',
+          emails: ['sandesh@thrumble.ai'],
+          pdfFilename: 'tic-daily-2026-10-02.pdf',
+          pdfUrl: 'https://example.com/tic-daily-2026-10-02.pdf',
+        },
+      ],
+    })
+
+    expect(text).toContain(
+      'PDF: <https://example.com/tic-daily-2026-10-02.pdf|tic-daily-2026-10-02.pdf>',
+    )
+  })
 })

@@ -5,6 +5,7 @@ export type SlackReportItem = {
   trustName: string
   emails: string[]
   pdfFilename: string | null
+  pdfUrl?: string | null
 }
 
 function londonDateLabel(date: Date) {
@@ -27,12 +28,18 @@ export function formatReportSlackMessage(input: {
   const trusts = input.items
     .map((item) => {
       const sentTo = item.emails.join(', ')
-      const pdf = item.pdfFilename ?? 'none'
+      const pdf = pdfLine(item)
       return `${item.trustName}\nSent to: ${sentTo}\nPDF: ${pdf}`
     })
     .join('\n\n')
 
   return `✅ ${label} reports sent — ${date}\n\n${input.items.length} sent\n\n${trusts}`
+}
+
+function pdfLine(item: SlackReportItem) {
+  if (!item.pdfFilename) return 'none'
+  if (!item.pdfUrl) return item.pdfFilename
+  return `<${item.pdfUrl}|${item.pdfFilename}>`
 }
 
 /** Posts after a successful send. Missing webhook or a Slack error must not fail the emails. */
