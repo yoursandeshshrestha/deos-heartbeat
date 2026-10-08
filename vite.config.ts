@@ -256,6 +256,98 @@ function localApiPlugin(env: Record<string, string>): Plugin {
             return
           }
 
+          const addonModules: Record<string, string> = {
+            '/api/insights': '/api/insights.ts',
+            '/api/locations': '/api/locations.ts',
+            '/api/tickets': '/api/tickets.ts',
+            '/api/engagement': '/api/engagement.ts',
+            '/api/webhooks/resend': '/api/webhooks/resend.ts',
+          }
+          const addonModule = addonModules[pathOnly]
+          if (addonModule) {
+            const isWebhook = pathOnly === '/api/webhooks/resend'
+            if (!isWebhook && !(await requireLocalReader())) {
+              res.statusCode = 401
+              res.setHeader('Content-Type', 'application/json')
+              res.end(JSON.stringify({ error: 'Unauthorized' }))
+              return
+            }
+            const chunks: Buffer[] = []
+            if (req.method !== 'GET' && req.method !== 'HEAD') {
+              for await (const chunk of req) {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
+              }
+            }
+            const rawBody = Buffer.concat(chunks).toString('utf8')
+            let parsedBody: unknown
+            if (rawBody) {
+              try {
+                parsedBody = JSON.parse(rawBody)
+              } catch {
+                parsedBody = rawBody
+              }
+            }
+            const addonUrl = new URL(req.url ?? pathOnly, 'http://localhost')
+            const query: Record<string, string> = {}
+            addonUrl.searchParams.forEach((value, key) => {
+              query[key] = value
+            })
+            const headers: Record<string, string> = {}
+            for (const [key, value] of Object.entries(req.headers)) {
+              if (typeof value === 'string') headers[key.toLowerCase()] = value
+            }
+            const state = {
+              statusCode: 200,
+              headers: {} as Record<string, string>,
+              payload: '',
+            }
+            const fakeRes = {
+              setHeader(name: string, value: string | number) {
+                state.headers[name] = String(value)
+                return fakeRes
+              },
+              getHeader(name: string) {
+                return state.headers[name]
+              },
+              status(code: number) {
+                state.statusCode = code
+                return fakeRes
+              },
+              json(payload: unknown) {
+                state.headers['content-type'] = 'application/json; charset=utf-8'
+                state.payload = JSON.stringify(payload)
+                return fakeRes
+              },
+              send(payload: unknown) {
+                state.payload =
+                  typeof payload === 'string' ? payload : JSON.stringify(payload ?? null)
+                return fakeRes
+              },
+              end(payload?: unknown) {
+                if (payload !== undefined) fakeRes.send(payload)
+              },
+            }
+            const mod = await server.ssrLoadModule(addonModule)
+            await mod.default(
+              {
+                method: req.method,
+                headers,
+                query,
+                url: addonUrl.pathname + addonUrl.search,
+                body: parsedBody,
+                rawBody,
+                socket: { remoteAddress: '' },
+              },
+              fakeRes,
+            )
+            res.statusCode = state.statusCode
+            for (const [key, value] of Object.entries(state.headers)) {
+              res.setHeader(key, value)
+            }
+            res.end(state.payload)
+            return
+          }
+
           if (req.url.startsWith('/api/reports/send')) {
             const url = new URL(req.url, 'http://localhost')
             const body = await readJsonBody()
@@ -338,6 +430,9 @@ export default defineConfig(({ command }) => {
     define: {
       __DEV_LOGIN_PASSWORD__: JSON.stringify(devLogin ? devPassword : ''),
       __DEV_LOGINS__: JSON.stringify(devLogins),
+      __BYPASS_AUTHENTICATOR__: JSON.stringify(
+        devLogin && /^(1|true|yes)$/i.test(env.BYPASS_AUTHENTICATOR ?? ''),
+      ),
     },
     resolve: {
       alias: {

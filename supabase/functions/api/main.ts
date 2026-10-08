@@ -7,6 +7,11 @@ import reportConfig from '../../../api/report-config.ts'
 import reportRuns from '../../../api/report-runs.ts'
 import reportsSend from '../../../api/reports/send.ts'
 import users from '../../../api/users.ts'
+import insights from '../../../api/insights.ts'
+import locations from '../../../api/locations.ts'
+import tickets from '../../../api/tickets.ts'
+import engagement from '../../../api/engagement.ts'
+import resendWebhook from '../../../api/webhooks/resend.ts'
 
 type Handler = (req: never, res: never) => Promise<unknown> | unknown
 
@@ -19,6 +24,11 @@ const routes: Record<string, Handler> = {
   users: users as Handler,
   'report-config': reportConfig as Handler,
   'report-runs': reportRuns as Handler,
+  insights: insights as Handler,
+  locations: locations as Handler,
+  tickets: tickets as Handler,
+  engagement: engagement as Handler,
+  'webhooks/resend': resendWebhook as Handler,
 }
 
 const readerRoutes = new Set(['fleet', 'fleet-summary'])
@@ -98,6 +108,7 @@ function adapt(request: Request) {
     query,
     url: url.pathname + url.search,
     body: undefined as unknown,
+    rawBody: undefined as string | undefined,
     socket: { remoteAddress: headers['x-forwarded-for'] ?? '' },
   }
 
@@ -108,6 +119,7 @@ function adapt(request: Request) {
       if (request.method === 'GET' || request.method === 'HEAD') return
       const text = await request.text()
       if (!text) return
+      req.rawBody = text
       try {
         req.body = JSON.parse(text)
       } catch {
