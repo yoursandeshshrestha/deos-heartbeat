@@ -15,6 +15,7 @@ export const FLEET_QUERIES = {
   scrape_up: 'up',
   latitude: 'snmp_latitude',
   longitude: 'snmp_longitude',
+  gps_accuracy: 'snmp_accuracy',
 } as const
 
 export type FleetMetricKey = keyof typeof FLEET_QUERIES

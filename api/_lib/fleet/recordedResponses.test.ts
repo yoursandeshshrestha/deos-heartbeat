@@ -35,7 +35,7 @@ describe('/api/fleet recorded responses', () => {
 
     expect(payload.vans).toHaveLength(1)
     expect(payload.vans[0].status).toBe('red')
-    expect(payload.vans[0].reason).toMatch(/no scrape data/i)
+    expect(payload.vans[0].reason).toBe('No update from this van')
   })
 
   it('merges partial success when some queries timed out (missing keys)', () => {

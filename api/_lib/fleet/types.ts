@@ -38,6 +38,8 @@ export type VanMetrics = {
   speed_floor: number | null
   latitude: number | null
   longitude: number | null
+  /** Metres. Null when the modem did not report a fix quality. */
+  gps_accuracy: number | null
 }
 
 export type DeriveStatusInput = {

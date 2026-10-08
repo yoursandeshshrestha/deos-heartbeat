@@ -1,3 +1,4 @@
+import { isPlottableGps } from '../addons/geo.js'
 import { supabase as supabaseEnv } from '../env.js'
 import { getServiceClient } from '../supabase.js'
 import type { FleetPayload, FleetVan } from './types.js'
@@ -6,17 +7,12 @@ type StoredLocation = {
   instance: string
   latitude: number
   longitude: number
+  accuracy_m: number | null
   recorded_at: string
 }
 
 function isLiveGps(van: FleetVan) {
-  return (
-    van.gps_source === 'live' &&
-    typeof van.latitude === 'number' &&
-    Number.isFinite(van.latitude) &&
-    typeof van.longitude === 'number' &&
-    Number.isFinite(van.longitude)
-  )
+  return van.gps_source === 'live' && isPlottableGps(van.latitude, van.longitude)
 }
 
 async function loadStoredLocations(): Promise<Map<string, StoredLocation>> {
@@ -26,13 +22,14 @@ async function loadStoredLocations(): Promise<Map<string, StoredLocation>> {
     const db = getServiceClient()
     const { data, error } = await db
       .from('van_locations')
-      .select('instance, latitude, longitude, recorded_at')
+      .select('instance, latitude, longitude, accuracy_m, recorded_at')
     if (error) throw error
     for (const row of data ?? []) {
       map.set(row.instance, {
         instance: row.instance,
         latitude: Number(row.latitude),
         longitude: Number(row.longitude),
+        accuracy_m: row.accuracy_m == null ? null : Number(row.accuracy_m),
         recorded_at: row.recorded_at,
       })
     }
@@ -49,6 +46,8 @@ async function upsertLiveLocations(vans: FleetVan[]) {
       instance: van.instance,
       latitude: van.latitude as number,
       longitude: van.longitude as number,
+      accuracy_m: van.gps_accuracy,
+      status: van.status,
       recorded_at: van.gps_recorded_at ?? new Date().toISOString(),
       updated_at: new Date().toISOString(),
     }))
@@ -85,6 +84,7 @@ export async function applyLastKnownLocations(
       ...van,
       latitude: last.latitude,
       longitude: last.longitude,
+      gps_accuracy: van.gps_accuracy ?? last.accuracy_m,
       gps_source: 'last_known' as const,
       gps_recorded_at: last.recorded_at,
     }

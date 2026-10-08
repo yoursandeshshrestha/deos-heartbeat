@@ -1,3 +1,4 @@
+import { isPlottableGps } from '../addons/geo.js'
 import { deriveStatus } from './deriveStatus.js'
 import {
   isExcludedInstance,
@@ -48,6 +49,7 @@ function emptyMetrics(instance: string, trust: string | null): VanMetrics {
     speed_floor: null,
     latitude: null,
     longitude: null,
+    gps_accuracy: null,
   }
 }
 
@@ -145,11 +147,7 @@ export function mergeFleetMetrics(args: {
       speed_floor: Number.isFinite(speedFloor) ? speedFloor : null,
     }
     const derived = deriveStatus({ metrics: withFloor, thresholds: args.thresholds })
-    const liveGps =
-      typeof withFloor.latitude === 'number' &&
-      Number.isFinite(withFloor.latitude) &&
-      typeof withFloor.longitude === 'number' &&
-      Number.isFinite(withFloor.longitude)
+    const liveGps = isPlottableGps(withFloor.latitude, withFloor.longitude)
     fleetVans.push({
       ...withFloor,
       id: dbVan?.id ?? null,

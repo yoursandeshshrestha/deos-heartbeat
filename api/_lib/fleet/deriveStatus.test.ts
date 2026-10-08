@@ -24,15 +24,16 @@ function base(overrides: Partial<VanMetrics> = {}, now = Date.now()): VanMetrics
     speed_floor: null,
     latitude: null,
     longitude: null,
+    gps_accuracy: null,
     ...overrides,
   }
 }
 
 describe('deriveStatus', () => {
   it('returns red when modality is down', () => {
-    expect(deriveStatus({ metrics: base({ modality_up: 0 }), thresholds: DEFAULT_FLEET_THRESHOLDS }).status).toBe(
-      'red',
-    )
+    const result = deriveStatus({ metrics: base({ modality_up: 0 }), thresholds: DEFAULT_FLEET_THRESHOLDS })
+    expect(result.status).toBe('red')
+    expect(result.reason).toBe('The scanner is not responding')
   })
 
   it('returns red when sync destination status is non-zero', () => {

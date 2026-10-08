@@ -9,6 +9,7 @@ import {
   trustSlugFromInstance,
 } from './queries.js'
 import { fetchAllFleetSamples } from './grafana.js'
+import { recordFleetSnapshot } from '../addons/store.js'
 import { applyLastKnownLocations } from './locations.js'
 import {
   DEFAULT_FLEET_THRESHOLDS,
@@ -202,16 +203,22 @@ export async function buildFleetPayload(): Promise<FleetPayload> {
       await autoDiscover([...instances], vans)
       vans = await loadVans()
     }
-    const payload = await applyLastKnownLocations(
-      mergeFleetMetrics({
-        samples,
-        vans,
-        thresholds,
-        fetchedAt,
-        stale: false,
-        source: useFixtures ? 'fixture' : 'grafana',
-      }),
-    )
+    const merged = mergeFleetMetrics({
+      samples,
+      vans,
+      thresholds,
+      fetchedAt,
+      stale: false,
+      source: useFixtures ? 'fixture' : 'grafana',
+    })
+    if (merged.source === 'grafana') {
+      try {
+        await recordFleetSnapshot(merged)
+      } catch {
+        // Owned history is best-effort. The live fleet response still returns.
+      }
+    }
+    const payload = await applyLastKnownLocations(merged)
     setFleetCache(payload)
     return payload
   } catch (error) {

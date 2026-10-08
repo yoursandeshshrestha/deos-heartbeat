@@ -34,20 +34,20 @@ export function deriveStatus(input: DeriveStatusInput): DeriveStatusResult {
   // Red: Offline
   // probe_success: 1 = OK. deos_*_status gauges: 0 = OK, non-zero = error code.
   if (modality === 0) {
-    return { status: 'red', reason: 'modality_up = 0' }
+    return { status: 'red', reason: 'The scanner is not responding' }
   }
   if (syncDest != null && syncDest !== 0) {
-    return { status: 'red', reason: `sync_dest_up = ${syncDest}` }
+    return { status: 'red', reason: 'Images are not reaching the hospital' }
   }
   if (scrapeUp === 0) {
-    return { status: 'red', reason: 'scrape_up = 0' }
+    return { status: 'red', reason: 'This van stopped sending updates' }
   }
   if (metrics.scraped_at != null) {
     const staleMs = thresholds.scrape_stale_minutes * 60_000
     if (now.getTime() - metrics.scraped_at > staleMs) {
       return {
         status: 'red',
-        reason: `no scrape data for ${thresholds.scrape_stale_minutes}+ minutes`,
+        reason: `No update from this van for over ${thresholds.scrape_stale_minutes} minutes`,
       }
     }
   } else if (
@@ -57,31 +57,33 @@ export function deriveStatus(input: DeriveStatusInput): DeriveStatusResult {
     speed == null &&
     num(metrics.db_up) == null
   ) {
-    return { status: 'red', reason: 'no scrape data' }
+    return { status: 'red', reason: 'No update from this van' }
   }
 
   // Grey: Not scheduled
   if (worklist === 0 && patients === 0) {
-    return { status: 'grey', reason: 'worklist_today = 0 and patients_today = 0' }
+    return { status: 'grey', reason: 'Nothing is scheduled today' }
   }
 
   // Amber: Degraded
   if (failed >= thresholds.failed_queue_amber) {
+    const sends = failed === 1 ? 'send has' : 'sends have'
     return {
       status: 'amber',
-      reason: `sync_failed ${failed} >= ${thresholds.failed_queue_amber}`,
+      reason: `${failed} image ${sends} failed`,
     }
   }
   if (retry >= thresholds.retry_queue_amber) {
+    const sends = retry === 1 ? 'send is' : 'sends are'
     return {
       status: 'amber',
-      reason: `sync_retry ${retry} >= ${thresholds.retry_queue_amber}`,
+      reason: `${retry} image ${sends} waiting to try again`,
     }
   }
   if (speed != null && speed < floor) {
     return {
       status: 'amber',
-      reason: `sync_speed ${speed.toFixed(2)} MB/s below floor ${floor}`,
+      reason: 'Image transfer is slower than usual',
     }
   }
 
@@ -91,10 +93,10 @@ export function deriveStatus(input: DeriveStatusInput): DeriveStatusResult {
     if (progressPct < thresholds.progress_amber_pct) {
       return {
         status: 'amber',
-        reason: `progress ${progressPct.toFixed(0)}% below ${thresholds.progress_amber_pct}% after midday`,
+        reason: `Only ${progressPct.toFixed(0)}% of today's patients are done`,
       }
     }
   }
 
-  return { status: 'green', reason: 'online' }
+  return { status: 'green', reason: 'Running normally' }
 }
