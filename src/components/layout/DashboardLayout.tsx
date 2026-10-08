@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
-import { List as Menu } from '@phosphor-icons/react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { CaretLeft, List as Menu } from '@phosphor-icons/react'
+import { HeaderSlotContext } from './header-slot'
 import { Sidebar } from './Sidebar'
 import { Sheet, SheetContent } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,9 @@ import { Button } from '@/components/ui/button'
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Fleet',
   '/fleet-map': 'Fleet map',
+  '/vans': 'Vans',
+  '/tickets': 'Tickets',
+  '/engagement': 'Engagement',
   '/reports': 'Reports',
   '/report-history': 'Report history',
   '/users': 'Users & Access',
@@ -15,6 +19,7 @@ const PAGE_TITLES: Record<string, string> = {
 }
 
 function pageTitle(pathname: string) {
+  if (pathname.startsWith('/vans/')) return 'Van'
   if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
   const match = Object.keys(PAGE_TITLES).find(
     (path) => path !== '/' && pathname.startsWith(path),
@@ -25,8 +30,17 @@ function pageTitle(pathname: string) {
 export function DashboardLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [headerSlot, setHeaderSlot] = useState<HTMLDivElement | null>(null)
   const { pathname } = useLocation()
+  const navigate = useNavigate()
   const title = pageTitle(pathname)
+  const showBack = pathname.startsWith('/vans/')
+
+  function goBack() {
+    const index = (window.history.state as { idx?: number } | null)?.idx ?? 0
+    if (index > 0) navigate(-1)
+    else navigate(pathname.startsWith('/vans/') ? '/vans' : '/fleet-map')
+  }
 
   return (
     <div className="relative flex h-dvh bg-background">
@@ -56,13 +70,22 @@ export function DashboardLayout() {
           >
             <Menu className="size-5" />
           </Button>
-          <div className="min-w-0">
+          {showBack ? (
+            <Button variant="ghost" size="sm" onClick={goBack}>
+              <CaretLeft />
+              Back
+            </Button>
+          ) : null}
+          <div className="min-w-0 shrink-0">
             <p className="truncate text-sm font-semibold tracking-tight">{title}</p>
           </div>
+          <div ref={setHeaderSlot} className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-3 overflow-x-auto" />
         </header>
-        <div data-main-scroll className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
-          <Outlet />
-        </div>
+        <HeaderSlotContext.Provider value={headerSlot}>
+          <div data-main-scroll className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-background">
+            <Outlet />
+          </div>
+        </HeaderSlotContext.Provider>
       </div>
     </div>
   )

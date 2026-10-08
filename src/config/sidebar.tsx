@@ -1,10 +1,13 @@
 import type { Icon } from '@phosphor-icons/react'
 import {
   ClipboardText,
+  EnvelopeSimple,
   FilePdf,
   MapTrifold,
   Pulse,
+  Van,
   Scroll,
+  Ticket,
   UsersThree,
 } from '@phosphor-icons/react'
 import type { Role } from '@/lib/roles'
@@ -27,7 +30,9 @@ const nav: NavGroup[] = [
     label: 'Monitor',
     items: [
       { title: 'Fleet', href: '/', icon: Pulse },
+      { title: 'Vans', href: '/vans', icon: Van },
       { title: 'Fleet map', href: '/fleet-map', icon: MapTrifold },
+      { title: 'Tickets', href: '/tickets', icon: Ticket },
     ],
   },
   {
@@ -35,6 +40,7 @@ const nav: NavGroup[] = [
     items: [
       { title: 'Reports', href: '/reports', icon: ClipboardText },
       { title: 'Report history', href: '/report-history', icon: FilePdf },
+      { title: 'Engagement', href: '/engagement', icon: EnvelopeSimple },
       { title: 'Users & Access', href: '/users', icon: UsersThree, roles: ['admin'] },
       { title: 'Audit', href: '/audit', icon: Scroll },
     ],

@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom'
 import useSWR from 'swr'
 import { useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react'
 import { Label as PieLabel, Pie, PieChart } from 'recharts'
@@ -33,17 +34,12 @@ import {
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CaretDown } from '@phosphor-icons/react'
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/utils'
 import { serverFetch } from '@/lib/serverApi'
+import { vanPath } from '@/lib/van-path'
 import { supabase } from '@/lib/supabase'
+import type { TicketsPayload } from '@/lib/addon-types'
 import type { FleetPayload, FleetStatus, FleetThresholds, FleetVan } from '@/lib/fleet-types'
 
 const fetcher = async (url: string): Promise<FleetPayload> => {
@@ -284,10 +280,22 @@ export function FleetPage() {
     refreshWhenHidden: false,
     revalidateOnFocus: true,
   })
+  const { data: tickets } = useSWR<TicketsPayload>('/api/tickets?status=open', async (url: string) => {
+    const response = await serverFetch(url)
+    if (!response.ok) throw new Error('tickets')
+    return response.json()
+  })
+  const openTickets = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const ticket of tickets?.tickets ?? []) {
+      if (!ticket.instance) continue
+      counts.set(ticket.instance, (counts.get(ticket.instance) ?? 0) + 1)
+    }
+    return counts
+  }, [tickets])
 
   const [trustFilter, setTrustFilter] = useState('all')
   const [openTrusts, setOpenTrusts] = useState<Record<string, boolean>>({})
-  const [selected, setSelected] = useState<FleetVan | null>(null)
   const [thresholdsOpen, setThresholdsOpen] = useState(false)
 
   const trustOptions = useMemo(() => {
@@ -616,7 +624,7 @@ export function FleetPage() {
                             <VanRow
                               key={van.instance}
                               van={van}
-                              onSelect={() => setSelected(van)}
+                              openTickets={openTickets.get(van.instance) ?? 0}
                             />
                           ))}
                         </div>
@@ -630,17 +638,6 @@ export function FleetPage() {
         )}
       </div>
 
-      <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
-        <SheetContent
-          side="right"
-          className="w-full gap-0 border-l border-border/70 p-0 sm:max-w-md"
-        >
-          {selected ? (
-            <VanDetailPanel van={selected} />
-          ) : null}
-        </SheetContent>
-      </Sheet>
-
       {canWrite && data.thresholds ? (
         <ThresholdsDialog
           open={thresholdsOpen}
@@ -653,7 +650,14 @@ export function FleetPage() {
   )
 }
 
-function VanRow({ van, onSelect }: { van: FleetVan; onSelect: () => void }) {
+function VanRow({
+  van,
+  openTickets = 0,
+}: {
+  van: FleetVan
+  openTickets?: number
+}) {
+  const navigate = useNavigate()
   const patients = van.patients_today
   const worklist = van.worklist_today
   const patientsLabel =
@@ -670,7 +674,7 @@ function VanRow({ van, onSelect }: { van: FleetVan; onSelect: () => void }) {
   return (
     <button
       type="button"
-      onClick={onSelect}
+      onClick={() => navigate(vanPath(van.instance))}
       className={cn(
         'grid h-12 w-full items-center gap-2 px-4 text-left text-base xl:gap-6',
         vanCols,
@@ -678,6 +682,11 @@ function VanRow({ van, onSelect }: { van: FleetVan; onSelect: () => void }) {
     >
       <span className="truncate font-medium tabular-nums">
         {shortVanName(van)}
+        {openTickets > 0 ? (
+          <span className="ml-2 rounded bg-muted px-1.5 py-0.5 text-xs font-normal text-muted-foreground">
+            {openTickets} ticket{openTickets === 1 ? '' : 's'}
+          </span>
+        ) : null}
       </span>
       <span className={cn('inline-flex items-center gap-1.5 text-sm', STATUS_BADGE[van.status])}>
         <span className={cn('size-2 shrink-0 rounded-full', STATUS_DOT[van.status])} />
@@ -701,109 +710,6 @@ function VanRow({ van, onSelect }: { van: FleetVan; onSelect: () => void }) {
         {formatMetric(failed)}
       </span>
     </button>
-  )
-}
-
-function VanDetailPanel({ van }: { van: FleetVan }) {
-  const progress = vanProgress(van)
-  const speedLabel =
-    van.sync_speed == null
-      ? '—'
-      : `${Number(van.sync_speed).toFixed(2)} MB/s`
-
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <SheetHeader className="shrink-0 border-b border-border/70 pr-14 text-left">
-        <SheetTitle className="truncate">{van.display_name}</SheetTitle>
-        <SheetDescription className="truncate font-mono text-xs">
-          {van.instance}
-        </SheetDescription>
-      </SheetHeader>
-
-      <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
-        <section className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            Status
-          </p>
-          <div className="rounded-md bg-muted/40 px-3 py-3">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn('size-2.5 shrink-0 rounded-full', STATUS_DOT[van.status])}
-              />
-              <span className="text-sm font-medium">{STATUS_LABEL[van.status]}</span>
-            </div>
-            {van.reason ? (
-              <p className="mt-1.5 text-sm leading-snug text-muted-foreground">
-                {van.reason}
-              </p>
-            ) : null}
-          </div>
-        </section>
-
-        <section className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            Today
-          </p>
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border/70 ring-1 ring-border/70">
-            <Metric label="Patients" value={van.patients_today} />
-            <Metric label="Studies" value={van.studies_today} />
-            <Metric label="Worklist" value={van.worklist_today} />
-            <Metric
-              label="Progress"
-              value={progress == null ? null : `${Math.round(progress * 100)}%`}
-            />
-          </dl>
-        </section>
-
-        <section className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            Sync
-          </p>
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border/70 ring-1 ring-border/70">
-            <Metric label="Speed" value={speedLabel === '—' ? null : speedLabel} />
-            <Metric label="Failed" value={van.sync_failed} />
-            <Metric label="Retry" value={van.sync_retry} />
-            <Metric label="Active" value={van.sync_active} />
-            <Metric label="Complete" value={van.sync_complete} />
-            <Metric label="Dest up" value={van.sync_dest_up} />
-          </dl>
-        </section>
-
-        <section className="space-y-2">
-          <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            Health
-          </p>
-          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md bg-border/70 ring-1 ring-border/70">
-            <Metric label="Modality" value={van.modality_up} />
-            <Metric label="DB" value={van.db_up} />
-            <Metric label="Orthanc" value={van.orthanc_up} />
-            <Metric label="Scrape" value={van.scrape_up} />
-            <Metric label="Version" value={van.version} className="col-span-2" />
-          </dl>
-        </section>
-      </div>
-    </div>
-  )
-}
-
-function Metric({
-  label,
-  value,
-  suffix = '',
-  className,
-}: {
-  label: string
-  value: number | string | null
-  suffix?: string
-  className?: string
-}) {
-  return (
-    <div className={cn('bg-white px-3 py-2.5 dark:bg-card', className)}>
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 text-sm font-medium tabular-nums text-foreground">
-        {value == null || value === '' ? '—' : `${value}${suffix}`}
-      </dd>
-    </div>
   )
 }
 
@@ -878,15 +784,15 @@ function ThresholdsDialog({
           <DialogHeader>
             <DialogTitle>Fleet thresholds</DialogTitle>
             <DialogDescription>
-              Amber / offline rules for the heatmap. Confirm with Viv in UAT (Phase 0 Q6).
+              When a van should show as behind or offline.
             </DialogDescription>
           </DialogHeader>
           <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            {field('speed_floor_mbps', 'Speed floor (MB/s)', '0.05')}
-            {field('failed_queue_amber', 'Failed queue → degraded at')}
-            {field('retry_queue_amber', 'Retry queue → degraded at')}
-            {field('progress_amber_pct', 'Midday progress → degraded below %')}
-            {field('scrape_stale_minutes', 'Scrape stale → offline (minutes)')}
+            {field('speed_floor_mbps', 'Slow transfer warning below (MB/s)', '0.05')}
+            {field('failed_queue_amber', 'Failed image sends before a warning')}
+            {field('retry_queue_amber', 'Retries waiting before a warning')}
+            {field('progress_amber_pct', 'Afternoon progress warning below %')}
+            {field('scrape_stale_minutes', 'Minutes without an update before offline')}
           </div>
           <DialogFooter className="mt-6">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
