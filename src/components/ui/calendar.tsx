@@ -81,64 +81,73 @@ function Calendar({
       : undefined
   const disabledAfter = disabledAfterFromProp(props.disabled)
 
+  const stopListening = React.useRef<(() => void) | null>(null)
+
+  const endDrag = React.useCallback(() => {
+    stopListening.current?.()
+    stopListening.current = null
+    dragRef.current = null
+    setDragging(null)
+    document.body.style.cursor = ""
+    document.body.style.userSelect = ""
+  }, [])
+
   const beginDrag = React.useCallback(
     (handle: RangeHandle) => {
       const from = selectedRange?.from
       if (!from) return
+      endDrag()
       const to = selectedRange?.to ?? from
+      const applyDate = (date: Date) => {
+        const drag = dragRef.current
+        if (!drag) return
+        const next = startOfLocalDay(date)
+        if (drag.disabledAfter && next > drag.disabledAfter) return
+        const other = startOfLocalDay(drag.otherEnd)
+        drag.onSelect?.(
+          next <= other ? { from: next, to: other } : { from: other, to: next },
+        )
+      }
+      const onMove = (event: PointerEvent) => {
+        const target = document.elementFromPoint(event.clientX, event.clientY)
+        const dayEl = target?.closest("[data-calendar-day]") as HTMLElement | null
+        const key = dayEl?.dataset.calendarDay
+        if (!key) return
+        const date = fromDateKey(key)
+        if (date) applyDate(date)
+      }
+      const onUp = (event: PointerEvent | MouseEvent) => {
+        onMove(event)
+        endDrag()
+      }
+      stopListening.current = () => {
+        window.removeEventListener("pointermove", onMove)
+        window.removeEventListener("mousemove", onMove)
+        window.removeEventListener("pointerup", onUp)
+        window.removeEventListener("mouseup", onUp)
+      }
       dragRef.current = {
         handle,
         otherEnd: handle === "start" ? to : from,
         onSelect: onSelectRange,
         disabledAfter,
       }
+      document.body.style.cursor = "grabbing"
+      document.body.style.userSelect = "none"
+      window.addEventListener("pointermove", onMove)
+      window.addEventListener("mousemove", onMove)
+      window.addEventListener("pointerup", onUp)
+      window.addEventListener("mouseup", onUp)
       setDragging(handle)
     },
-    [disabledAfter, onSelectRange, selectedRange],
+    [disabledAfter, endDrag, onSelectRange, selectedRange],
   )
 
   React.useEffect(() => {
-    if (!dragging) return
-
-    const applyDate = (date: Date) => {
-      const drag = dragRef.current
-      if (!drag) return
-      const next = startOfLocalDay(date)
-      if (drag.disabledAfter && next > drag.disabledAfter) return
-      const other = startOfLocalDay(drag.otherEnd)
-      drag.onSelect?.(
-        next <= other ? { from: next, to: other } : { from: other, to: next },
-      )
-    }
-
-    const onMove = (event: PointerEvent) => {
-      const target = document.elementFromPoint(event.clientX, event.clientY)
-      const dayEl = target?.closest("[data-calendar-day]") as HTMLElement | null
-      const key = dayEl?.dataset.calendarDay
-      if (!key) return
-      const date = fromDateKey(key)
-      if (date) applyDate(date)
-    }
-
-    const onUp = () => {
-      dragRef.current = null
-      setDragging(null)
-    }
-
-    const previousCursor = document.body.style.cursor
-    const previousUserSelect = document.body.style.userSelect
-    document.body.style.cursor = "grabbing"
-    document.body.style.userSelect = "none"
-    window.addEventListener("pointermove", onMove)
-    window.addEventListener("pointerup", onUp)
-
     return () => {
-      document.body.style.cursor = previousCursor
-      document.body.style.userSelect = previousUserSelect
-      window.removeEventListener("pointermove", onMove)
-      window.removeEventListener("pointerup", onUp)
+      endDrag()
     }
-  }, [dragging])
+  }, [endDrag])
 
   return (
     <RangeDragContext.Provider value={{ dragging, beginDrag }}>
@@ -161,7 +170,7 @@ function Calendar({
         classNames={{
           root: cn("w-fit", defaultClassNames.root),
           months: cn(
-            "relative flex flex-col gap-4 md:flex-row",
+            "relative flex flex-row gap-4",
             defaultClassNames.months
           ),
           month: cn("flex w-full flex-col gap-4", defaultClassNames.month),
@@ -340,11 +349,13 @@ function CalendarDayButton({
       )}
       {...props}
       onPointerDown={(event) => {
+        if (isRangeHandle && event.button === 0) {
+          event.preventDefault()
+          event.stopPropagation()
+          beginDrag(modifiers.range_end && !modifiers.range_start ? "end" : "start")
+          return
+        }
         props.onPointerDown?.(event)
-        if (!isRangeHandle || event.button !== 0) return
-        event.preventDefault()
-        event.stopPropagation()
-        beginDrag(modifiers.range_end && !modifiers.range_start ? "end" : "start")
       }}
       onClick={(event) => {
         if (isRangeHandle || dragging) {
