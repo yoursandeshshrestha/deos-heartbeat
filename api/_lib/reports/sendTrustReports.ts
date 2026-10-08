@@ -236,44 +236,85 @@ export async function sendTrustReports(
         fields,
         attached: pdf != null,
       })
-      await sendEmail({
-        to,
-        subject: rendered.subject,
-        html: rendered.html,
-        text: rendered.text,
-        attachments:
-          pdf && pdfFilename
-            ? [
-                {
-                  filename: pdfFilename,
-                  content: Buffer.from(pdf).toString('base64'),
-                },
-              ]
-            : undefined,
-      })
+      const batchId = crypto.randomUUID()
+      const failures: string[] = []
+      let sentRecipients = 0
+      for (const recipient of report.recipients) {
+        try {
+          const sent = await sendEmail({
+            to: recipient.email,
+            subject: rendered.subject,
+            html: rendered.html,
+            text: rendered.text,
+            attachments:
+              pdf && pdfFilename
+                ? [
+                    {
+                      filename: pdfFilename,
+                      content: Buffer.from(pdf).toString('base64'),
+                    },
+                  ]
+                : undefined,
+          })
+          sentRecipients += 1
+          const { error: deliveryError } = await db.from('report_deliveries').insert({
+            trust_id: trust.id,
+            recipient_id: recipient.id,
+            report_type: reportType,
+            batch_id: batchId,
+            email: recipient.email,
+            resend_id: sent.id,
+            sent_at: new Date().toISOString(),
+          })
+          if (deliveryError) {
+            failures.push(`${recipient.email}: sent, open tracking not stored`)
+          }
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'send failed'
+          failures.push(`${recipient.email}: ${message}`)
+        }
+      }
+      if (sentRecipients === 0) {
+        throw new Error(failures.join('; ') || 'send failed')
+      }
 
+      const emailFailures = failures.filter((line) => !line.includes('open tracking not stored'))
       await db.from('report_runs').insert({
         trust_id: trust.id,
         report_type: reportType,
-        status: 'success',
-        error: null,
+        status: emailFailures.length ? 'failure' : 'success',
+        error: failures.length ? failures.join('; ') : null,
         run_at: new Date().toISOString(),
       })
 
-      summary.sent += 1
-      slackItems.push({
-        trustName: trust.name,
-        emails: to,
-        pdfFilename,
-        pdfUrl,
-      })
-      summary.results.push({
-        trust_id: trust.id,
-        trust_name: trust.name,
-        status: 'sent',
-        recipients: to.length,
-        reason: storageNote ? `email sent; copy not stored: ${storageNote}` : undefined,
-      })
+      if (sentRecipients > 0) {
+        slackItems.push({
+          trustName: trust.name,
+          emails: to,
+          pdfFilename,
+          pdfUrl,
+        })
+      }
+      const reason = [storageNote, failures.join('; ')].filter(Boolean).join(' — ') || undefined
+      if (emailFailures.length) {
+        summary.failed += 1
+        summary.results.push({
+          trust_id: trust.id,
+          trust_name: trust.name,
+          status: 'failed',
+          recipients: sentRecipients,
+          reason,
+        })
+      } else {
+        summary.sent += 1
+        summary.results.push({
+          trust_id: trust.id,
+          trust_name: trust.name,
+          status: 'sent',
+          recipients: sentRecipients,
+          reason,
+        })
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'send failed'
       await db.from('report_runs').insert({
