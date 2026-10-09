@@ -146,7 +146,6 @@ type HealthCheck = {
 
 function healthChecks(van: FleetVan, thresholds: FleetThresholds): HealthCheck[] {
   const floor = van.speed_floor ?? thresholds.speed_floor_mbps
-  const patients = van.patients_today
   const worklist = van.worklist_today
   const progress = progressPct(van)
   const afternoon = londonHour() >= 12 && (worklist ?? 0) > 0

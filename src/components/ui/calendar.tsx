@@ -108,7 +108,7 @@ function Calendar({
           next <= other ? { from: next, to: other } : { from: other, to: next },
         )
       }
-      const onMove = (event: PointerEvent) => {
+      const onMove = (event: { clientX: number; clientY: number }) => {
         const target = document.elementFromPoint(event.clientX, event.clientY)
         const dayEl = target?.closest("[data-calendar-day]") as HTMLElement | null
         const key = dayEl?.dataset.calendarDay
