@@ -1,5 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { requireReader } from './_lib/auth.js'
 import { buildFleetPayload } from './_lib/fleet/build.js'
 import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 
@@ -17,8 +16,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }
-
-  if (!(await requireReader(req, res))) return
 
   try {
     const payload = await buildFleetPayload()
