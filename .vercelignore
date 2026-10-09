@@ -1,0 +1,18 @@
+# These routes only answer 410 on Vercel. Production API is the
+# Supabase Edge Function. Leaving them out keeps the deployment
+# under the Hobby plan limit of 12 serverless functions.
+api/config.ts
+api/engagement.ts
+api/fleet.ts
+api/fleet-summary.ts
+api/generated-reports.ts
+api/health.ts
+api/insights.ts
+api/locations.ts
+api/report-config.ts
+api/report-runs.ts
+api/tickets.ts
+api/uptime.ts
+api/users.ts
+api/reports/send.ts
+api/webhooks/resend.ts
