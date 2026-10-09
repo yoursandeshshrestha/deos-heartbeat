@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { requireReader } from './_lib/auth.js'
 import { buildFleetPayload } from './_lib/fleet/build.js'
 import { json, methodNotAllowed, refuseVercelFunction } from './_lib/http.js'
 
@@ -17,9 +18,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return methodNotAllowed(res, ['GET'])
   }
 
+  if (!(await requireReader(req, res))) return
+
   try {
     const payload = await buildFleetPayload()
-    res.setHeader('Cache-Control', 's-maxage=30, stale-while-revalidate=30')
+    res.setHeader('Cache-Control', 'private, no-store')
     return json(res, 200, payload)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Unknown error'

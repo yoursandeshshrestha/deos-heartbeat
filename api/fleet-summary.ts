@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { requireReader } from './_lib/auth.js'
 import { buildFleetPayload } from './_lib/fleet/build.js'
 import {
   briefingCacheKey,
@@ -24,6 +25,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'GET') {
     return methodNotAllowed(res, ['GET'])
   }
+
+  if (!(await requireReader(req, res))) return
 
   if (!rateLimit(req, res, { scope: 'fleet-summary', limit: 40, windowMs: 5 * 60_000 })) {
     return
