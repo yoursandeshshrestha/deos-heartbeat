@@ -49,7 +49,7 @@ export type TrustReport = {
   trustName: string
   trustSlug: string
   reportType: ReportType
-  recipients: { name: string; email: string }[]
+  recipients: { id: string; name: string; email: string }[]
   rows: TrustReportRow[]
   generatedAt: string
 }
@@ -126,7 +126,7 @@ export function buildTrustReport(input: {
     reportType,
     recipients: trust.recipients
       .filter((r) => r.active && r.email)
-      .map((r) => ({ name: r.name, email: r.email })),
+      .map((r) => ({ id: r.id, name: r.name, email: r.email })),
     rows,
     generatedAt: input.generatedAt ?? new Date().toISOString(),
   }

@@ -122,10 +122,8 @@ export function buildEngagement(rows: DeliveryRow[], now = new Date()): Engageme
   const trusts = [...byTrust.entries()].map(([trustId, list]) => {
     const people = new Set(list.map((row) => row.email))
     const openedRows = list.filter((row) => row.opened_at)
-    const lastOpened = openedRows
-      .map((row) => row.opened_at as string)
-      .sort()
-      .at(-1) ?? null
+    const openedAt = openedRows.map((row) => row.opened_at as string).sort()
+    const lastOpened = openedAt.length > 0 ? openedAt[openedAt.length - 1] : null
     const quiet = [...people].filter((email) => {
       const mine = list.filter((row) => row.email === email)
       return isQuiet(mine, nowMs)
@@ -151,7 +149,8 @@ export function buildEngagement(rows: DeliveryRow[], now = new Date()): Engageme
   }
   const recipients = [...byPerson.values()].map((list) => {
     const openedRows = list.filter((row) => row.opened_at)
-    const lastOpened = openedRows.map((row) => row.opened_at as string).sort().at(-1) ?? null
+    const openedAt = openedRows.map((row) => row.opened_at as string).sort()
+    const lastOpened = openedAt.length > 0 ? openedAt[openedAt.length - 1] : null
     const sample = list[0]
     return {
       recipientId: sample.recipient_id,

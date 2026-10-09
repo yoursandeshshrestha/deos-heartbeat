@@ -16,9 +16,7 @@ export function json(res: VercelResponse, status: number, body: unknown) {
   return res.status(status).json(body)
 }
 
-/** Production Vercel no longer serves these routes. Local Vite and the Edge Function do. */
-export function refuseVercelFunction(res: VercelResponse): boolean {
-  if (!process.env.VERCEL) return false
-  json(res, 410, { error: 'API moved to Supabase Edge Functions' })
-  return true
+/** Kept so existing handlers can call it. Routes run on Vercel. */
+export function refuseVercelFunction(_res: VercelResponse): boolean {
+  return false
 }
