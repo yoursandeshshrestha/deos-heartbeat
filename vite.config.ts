@@ -430,9 +430,8 @@ export default defineConfig(({ command }) => {
     define: {
       __DEV_LOGIN_PASSWORD__: JSON.stringify(devLogin ? devPassword : ''),
       __DEV_LOGINS__: JSON.stringify(devLogins),
-      __BYPASS_AUTHENTICATOR__: JSON.stringify(
-        devLogin && /^(1|true|yes)$/i.test(env.BYPASS_AUTHENTICATOR ?? ''),
-      ),
+      // Temporary: skip the authenticator code in every build, including production.
+      __BYPASS_AUTHENTICATOR__: JSON.stringify(true),
     },
     resolve: {
       alias: {

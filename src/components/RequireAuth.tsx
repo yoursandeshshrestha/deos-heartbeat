@@ -14,7 +14,7 @@ export function RequireAuth() {
 
   useEffect(() => {
     if (loading) return
-    if (!userId || __BYPASS_AUTHENTICATOR__) {
+    if (!userId) {
       setMfaStep('ok')
       return
     }
@@ -28,6 +28,11 @@ export function RequireAuth() {
     let active = true
 
     async function resolveMfa() {
+      if (__BYPASS_AUTHENTICATOR__) {
+        setMfaStep('ok')
+        return
+      }
+
       const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
       if (!active) return
       if (error) {

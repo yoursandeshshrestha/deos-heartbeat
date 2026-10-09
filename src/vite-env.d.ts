@@ -11,5 +11,5 @@ interface ImportMeta {
 
 declare const __DEV_LOGIN_PASSWORD__: string
 declare const __DEV_LOGINS__: { label: string; email: string }[]
-/** Local `vite` only. True when BYPASS_AUTHENTICATOR is set. Never true in a production build. */
+/** Temporary. True in every build so the authenticator code is not required. */
 declare const __BYPASS_AUTHENTICATOR__: boolean
